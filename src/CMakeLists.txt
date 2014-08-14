@@ -70,13 +70,25 @@ set(LIBS         "")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libdm_logger.pc.in
   ${CMAKE_CURRENT_BINARY_DIR}/${DM_LOGGER_NAME}.pc @ONLY)
 
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+# Install shared object
+install(
+TARGETS
+  ${DM_LOGGER_NAME}
+LIBRARY ARCHIVE DESTINATION
+lib/ 
+)
+else()
 # Install shared object
 install(
 TARGETS
   ${DM_LOGGER_NAME}
 LIBRARY DESTINATION
-  lib/
+lib/
 )
+endif( )
+
 
 # Install dm_logreader and preprocess_logger.pl
 install(
