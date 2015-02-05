@@ -54,7 +54,7 @@ if (-e $mdb)
   }
   close MDB;
 }
-  
+
 if ( !-d $dir )
 {
   parse_valafile( $dir, $dir . ".preprocessed.vala" );
@@ -212,6 +212,40 @@ sub parse_valafile
           }
         }
       }
+      elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.t\s*\(\s*("[^"]*"|[^\s]+)\s*(\)|,)/i )
+      {
+        my $package = $1;
+        my $message = $2;
+        my $nach_string = $3;
+        my $danach = $';
+        my $davor = $`;
+
+        if ( $davor !~ /\s*\/\/\s*$/ )
+        {
+          if ( $message !~ /^\s*"/ )
+          {
+            $nach_string = ", $message" . $nach_string;
+            $message = "\${1}";
+          }
+          else
+          {
+            $message =~ /^\s*"([^"]*)"\s*$/;
+            $message = $1;
+          }
+          if ( defined $messages{ $message } )
+          {
+            $my_id = $messages{ $message };
+          }
+          else
+          {
+            $message_id ++;
+            $my_id = $message_id;
+            $messages{ $message } = $my_id;
+          }
+          $line = "";
+          $line .= $davor . "$package.t( \"$message\", $my_id$nach_string$danach";
+        }
+      }
     }
     $line =~ s/\x01/\\"/g;
     print FOUT $line;
@@ -227,5 +261,3 @@ sub parse_valafile
 
   close FOUT;
 }
-
-
