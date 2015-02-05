@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+use strict;
+use utf8;
 
 # Dieses Programm wird dazu verwendet, die Log-Funktionsaufrufe in Vala zu "korrigieren"
 
@@ -85,7 +87,7 @@ unless(open(MDB, ">$mdb"))
 binmode MDB;
 foreach my $k (keys %messages)
 {
-  #print "Message $k = $messages{$k}\n";
+  print "Message $k = $messages{$k}\n";
   print MDB "$k\x01$messages{$k}\n";
 }
 close MDB;
@@ -135,7 +137,7 @@ sub parse_valafile
   my $previous_log_level = "";
 
   # Erstellen eines Datums mit Zeit
-  ( $sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst ) = localtime( time );
+  my ( $sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst ) = localtime( time );
   my $date_time = sprintf( "%02d.%02d.%04d %02d:%02d:%02d", $mday, $mon + 1, $year + 1900, $hour, $min, $sec );
 
   # Wenn das Source-File die Git-Version oder das Datum enthält, wird es als dynamisch preprocessed markiert
@@ -212,13 +214,15 @@ sub parse_valafile
           }
         }
       }
-      elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.t\s*\(\s*("[^"]*"|[^\s]+)\s*(\)|,)/i )
+      elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.t\s*\(\s*("[^"]+"|[^\s]+)\s*,\s*("[^"]*"|[^\s]+)\s*(\)|,)/i )
       {
         my $package = $1;
-        my $message = $2;
-        my $nach_string = $3;
+        my $caption = $2;
+        my $message = $3;
+        my $nach_string = $4;
         my $danach = $';
         my $davor = $`;
+        warn "t line!!! -- $package -- $caption -- $message -- $nach_string -- $davor -- $danach";
 
         if ( $davor !~ /\s*\/\/\s*$/ )
         {
@@ -232,18 +236,12 @@ sub parse_valafile
             $message =~ /^\s*"([^"]*)"\s*$/;
             $message = $1;
           }
-          if ( defined $messages{ $message } )
+
+          warn "message: $message - caption: $caption";
+          if ( !defined $messages{ $message } && $caption =~ /^"(.*)"$/ )
           {
-            $my_id = $messages{ $message };
+            $messages{ $message } = $1;
           }
-          else
-          {
-            $message_id ++;
-            $my_id = $message_id;
-            $messages{ $message } = $my_id;
-          }
-          $line = "";
-          $line .= $davor . "$package.t( \"$message\", $my_id$nach_string$danach";
         }
       }
     }
