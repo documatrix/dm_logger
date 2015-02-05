@@ -87,7 +87,7 @@ unless(open(MDB, ">$mdb"))
 binmode MDB;
 foreach my $k (keys %messages)
 {
-  print "Message $k = $messages{$k}\n";
+  #print "Message $k = $messages{$k}\n";
   print MDB "$k\x01$messages{$k}\n";
 }
 close MDB;
@@ -222,7 +222,6 @@ sub parse_valafile
         my $nach_string = $4;
         my $danach = $';
         my $davor = $`;
-        warn "t line!!! -- $package -- $caption -- $message -- $nach_string -- $davor -- $danach";
 
         if ( $davor !~ /\s*\/\/\s*$/ )
         {
