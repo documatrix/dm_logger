@@ -76,8 +76,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
 install(
 TARGETS
   ${DM_LOGGER_NAME}
-LIBRARY ARCHIVE DESTINATION
-lib/ 
+DESTINATION
+bin/ 
 )
 else()
 # Install shared object
