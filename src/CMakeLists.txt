@@ -72,21 +72,21 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libdm_logger.pc.in
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-# Install shared object
-install(
-TARGETS
-  ${DM_LOGGER_NAME}
-DESTINATION
-bin/ 
-)
+  # Install dll object
+  install(
+    TARGETS
+      ${DM_LOGGER_NAME}
+    DESTINATION
+      bin/ 
+    )
 else()
-# Install shared object
-install(
-TARGETS
-  ${DM_LOGGER_NAME}
-LIBRARY DESTINATION
-lib/
-)
+  # Install shared object
+  install(
+    TARGETS
+      ${DM_LOGGER_NAME}
+    LIBRARY DESTINATION
+    lib/
+  )
 endif( )
 
 
