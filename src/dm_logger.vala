@@ -564,13 +564,6 @@ namespace DMLogger
      * contains the messages with message ids names as keys.
      */
     public HashTable<int64?,string>? mdb;
-
-    /**
-     * This hashtable will be filled by the read_caption_mdb method and
-     * contains the messages with caption names as keys.
-     */
-    public HashTable<string,string>? caption_mdb;
-
     /**
      * This hashtable contains the filenames of the files which
      * already did a log output.
@@ -578,6 +571,17 @@ namespace DMLogger
      * to the log-file.
      */
     public HashTable<int64?,string>? files;
+    public bool threaded = true;
+
+    /**
+     * This hashtable will be filled by the read_caption_mdb method and
+     * contains the messages with caption names as keys.
+     */
+    public HashTable<string,string>? caption_mdb;
+
+    /* Ein Array das mit Log-Entries befüllt wird, wenn es "von außen" gesetzt wird. */
+    public DMArray<LogEntry>? entry_bin = null;
+
 
     /*
      * Führt Logging Aktivitäten aus
@@ -609,6 +613,10 @@ namespace DMLogger
           {
             e.print_out( this.files, this.mdb, false );
           }
+          if ( this.entry_bin != null )
+          {
+            this.entry_bin.push( e );
+          }
         }
         catch (Error e)
         {
@@ -638,6 +646,10 @@ namespace DMLogger
       }
     }
 
+    public void start_not_threaded( )
+    {
+      this.threaded = false;
+    }
 
     public void debug(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
@@ -680,7 +692,30 @@ namespace DMLogger
         tmp += v;
       }
       e.parameters = tmp;
-      DMLogger.log_queue.push(e);
+
+      if ( this.threaded )
+      {
+        DMLogger.log_queue.push( e );
+      }
+      else
+      {
+        try
+        {
+          e.out_file( );
+          if ( log_to_console )
+          {
+            e.print_out( this.files, this.mdb, false );
+          }
+          if ( this.entry_bin != null )
+          {
+            this.entry_bin.push( e );
+          }
+        }
+        catch ( Error err )
+        {
+          stderr.printf( "Error while logging message: %s\n", err.message );
+        }
+      }
     }
 
     private int64 __handle_file__(string filename, string git_version, uint16 line_number, uint16 trace_level)
@@ -692,7 +727,25 @@ namespace DMLogger
         this.__last_file_id__ ++;
         file_id = this.__last_file_id__;
         LogEntry fi = new LogEntry.file_info(filename, git_version, file_id, line_number, trace_level, false);
-        DMLogger.log_queue.push(fi);
+        if ( this.threaded )
+        {
+          DMLogger.log_queue.push( fi );
+        }
+        else
+        {
+          try
+          {
+            fi.out_file( );
+            if ( log_to_console )
+            {
+              fi.print_out( this.files, this.mdb, false );
+            }
+          }
+          catch (Error e)
+          {
+            GLib.critical("Error while logging message: " + e.message);
+          }
+        }
         this.logged_files.insert(filename, file_id);
       }
       return (int64)file_id;
@@ -702,14 +755,21 @@ namespace DMLogger
     {
       try
       {
-        LogEntry e = new LogEntry(0, 0, LOG_ENTRY_NONE, 0, 0, false);
-        e.exit_entry = true;
-        DMLogger.log_queue.push(e);
-        if (this.running != null)
+        if ( this.threaded )
         {
-          this.running.join();
+          LogEntry e = new LogEntry(0, 0, LOG_ENTRY_NONE, 0, 0, false);
+          e.exit_entry = true;
+          DMLogger.log_queue.push(e);
+          if (this.running != null)
+          {
+            this.running.join();
+          }
+          GLib.debug("Logger thread stopped");
         }
-        GLib.debug("Logger thread stopped");
+        else
+        {
+          write_out_log_buffer( );
+        }
       }
       catch (Error e)
       {

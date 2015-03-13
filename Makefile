@@ -19,7 +19,7 @@ windows: build copy_files
 	cd build && cmake . -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-mingw32.cmake -DCMAKE_INSTALL_PREFIX=/usr/i686-w64-mingw32/sys-root/mingw && make
 
 install: build
-	cd build && make install
+	cd build && make install && ldconfig
 
 clean: build
 	rm -rf build
