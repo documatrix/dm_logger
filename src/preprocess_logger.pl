@@ -8,14 +8,15 @@ my $dir = shift;
 my $mdb = shift;
 my $component = shift;
 
-my @merge_mdbs = @_;
-
 # Das debug-Flag kann 1, 0 oder nix sein. Wenn es 1 ist, werden alle Debug-Ausgaben gelassen, sonst entfernt
 my $debug = shift;
 if (!defined $debug || $debug ne "1")
 {
   $debug = "0";
 }
+
+my @merge_mdbs = @ARGV;
+
 if ($dir eq "")
 {
   $dir = "./";
@@ -63,7 +64,7 @@ if (-e $mdb)
       warn "Message database $mdb has wrong structure! Ignoring it!";
       last;
     }
-    $messages{ $tokens[ 0 ] }->{ $tokens[ 1 ] } = $tokens[ 2 ];
+    $messages{ $tokens[ 0 ] }->{ $tokens[ 2 ] } = $tokens[ 1 ];
     if ( $debug )
     {
       print "$tokens[ 0 ]: $tokens[ 2 ] = $tokens[ 1 ]\n";
@@ -75,6 +76,41 @@ if (-e $mdb)
   }
   close MDB;
 }
+
+# Check if other MDBs should be merged into this MDB...
+foreach my $merge_mdb ( @merge_mdbs )
+{
+  if ( $debug )
+  {
+    print "Merging $merge_mdb\n";
+  }
+  unless( open( MRG, "<$merge_mdb" ) )
+  {
+    warn "Could not merge $merge_mdb into $mdb! $!";
+    exit( 1 );
+  }
+  while ( my $line = <MRG> )
+  {
+    $line =~ s/\n$//;
+    if ( $line =~ /^\s*$/ || $line =~ /^\s*#/ )
+    {
+      next;
+    }
+    my @tokens = split( /\x01/, $line );
+    if ( $#tokens != 2 )
+    {
+      warn "Message database $mdb has wrong structure! Ignoring it!";
+      last;
+    }
+    $messages{ $tokens[ 0 ] }->{ $tokens[ 2 ] } = $tokens[ 1 ];
+    if ( $debug )
+    {
+      print "$tokens[ 0 ]: $tokens[ 2 ] = $tokens[ 1 ]\n";
+    }
+  }
+  close MRG;
+}
+
 
 if ( !-d $dir )
 {
@@ -104,25 +140,13 @@ unless( open( MDB, ">$mdb" ) )
   exit( 1 );
 }
 binmode MDB;
-foreach my $msg ( keys %{ $messages{ $component } } )
+foreach my $comp ( keys %messages )
 {
-  my $id = $messages{ $component }->{ $msg };
-  print MDB "$component\x01$id\x01$msg\n";
-}
-
-# Check if other MDBs should be merged into this MDB...
-foreach my $merge_mdb ( @merge_mdbs )
-{
-  unless( open( MRG, "<$merge_mdb" ) )
+  foreach my $msg ( keys %{ $messages{ $comp } } )
   {
-    warn "Could not merge $merge_mdb into $mdb! $!";
-    exit( 1 );
+    my $id = $messages{ $comp }->{ $msg };
+    print MDB "$comp\x01$id\x01$msg\n";
   }
-  while ( my $line = <MRG> )
-  {
-    print MDB $line;
-  }
-  close MRG;
 }
 
 close MDB;
