@@ -33,7 +33,7 @@ vala_precompile(TEST_DM_LOGGER_VALA_C
 PACKAGES
   ${VALA_PACKAGES} ${DM_LOGGER_NAME}
 OPTIONS
-  --thread --vapidir=${CMAKE_INSTALL_PREFIX}/share/vala/vapi --vapidir=../include --vapidir=${CMAKE_SOURCE_DIR}/src -g
+  --thread --vapidir=${CMAKE_SOURCE_DIR}/src --vapidir=${CMAKE_INSTALL_PREFIX}/share/vala/vapi -g
 )
 
 add_executable(
