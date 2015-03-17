@@ -6,7 +6,9 @@ use utf8;
 
 my $dir = shift;
 my $mdb = shift;
-my $output_file = shift;
+my $component = shift;
+
+my @merge_mdbs = @_;
 
 # Das debug-Flag kann 1, 0 oder nix sein. Wenn es 1 ist, werden alle Debug-Ausgaben gelassen, sonst entfernt
 my $debug = shift;
@@ -25,6 +27,12 @@ if ($mdb eq "")
   warn "No filename for message database given - using $mdb!";
 }
 
+if ( !defined $component || $component eq "" )
+{
+  warn "No component specified! Cannot run without component!";
+  exit( 1 );
+}
+
 my $git_version = `git rev-parse HEAD`;
 $git_version =~ s/\n//g;
 my %messages;
@@ -32,6 +40,9 @@ my $message_id = 0;
 
 if (-e $mdb)
 {
+  # Reading MDB file...
+  # Structure of MDB lines is:
+  # <component>\x01<message_id>\x01<message>
   unless(open(MDB, "<$mdb"))
   {
     warn "Could not open $mdb for reading! $!";
@@ -47,11 +58,19 @@ if (-e $mdb)
       next;
     }
     my @tokens = split(/\x01/, $mdb_line);
-    $messages{$tokens[0]} = $tokens[1];
-    print "$tokens[1] = $tokens[0]\n";
-    if ($message_id < $tokens[1])
+    if ( $#tokens != 2 )
     {
-      $message_id = $tokens[1];
+      warn "Message database $mdb has wrong structure! Ignoring it!";
+      last;
+    }
+    $messages{ $tokens[ 0 ] }->{ $tokens[ 1 ] } = $tokens[ 2 ];
+    if ( $debug )
+    {
+      print "$tokens[ 0 ]: $tokens[ 2 ] = $tokens[ 1 ]\n";
+    }
+    if ( $message_id < $tokens[ 1 ] )
+    {
+      $message_id = $tokens[ 1 ];
     }
   }
   close MDB;
@@ -63,33 +82,49 @@ if ( !-d $dir )
 }
 else
 {
-  unless(opendir(DIR, $dir))
+  unless( opendir( DIR, $dir ) )
   {
     warn "Could not open Directory $dir! $!";
-    exit(1);
+    exit( 1 );
   }
-  my @files = readdir(DIR);
-  foreach my $f (@files)
+  my @files = readdir( DIR );
+  foreach my $f ( @files )
   {
-    if ((! -d $f) && ($f =~ /\.vala$/i))
+    if ( ( ! -d $f ) && ( $f =~ /\.vala$/i ) )
     {
-      parse_valafile($dir . $f);
+      parse_valafile( $dir . $f );
     }
   }
   closedir DIR;
 }
 
-unless(open(MDB, ">$mdb"))
+unless( open( MDB, ">$mdb" ) )
 {
   warn "Could not open $mdb for writing! $!";
-  exit(1);
+  exit( 1 );
 }
 binmode MDB;
-foreach my $k (keys %messages)
+foreach my $msg ( keys %{ $messages{ $component } } )
 {
-  #print "Message $k = $messages{$k}\n";
-  print MDB "$k\x01$messages{$k}\n";
+  my $id = $messages{ $component }->{ $msg };
+  print MDB "$component\x01$id\x01$msg\n";
 }
+
+# Check if other MDBs should be merged into this MDB...
+foreach my $merge_mdb ( @merge_mdbs )
+{
+  unless( open( MRG, "<$merge_mdb" ) )
+  {
+    warn "Could not merge $merge_mdb into $mdb! $!";
+    exit( 1 );
+  }
+  while ( my $line = <MRG> )
+  {
+    print MDB $line;
+  }
+  close MRG;
+}
+
 close MDB;
 
 sub parse_valafile
@@ -189,17 +224,17 @@ sub parse_valafile
             $message =~ /^\s*"([^"]*)"\s*$/;
             $message = $1;
           }
-          if ( defined $messages{ $message } )
+          if ( defined $messages{ $component }->{ $message } )
           {
             #print "message already defined\n";
-            $my_id = $messages{$message};
+            $my_id = $messages{ $component}->{ $message };
           }
           else
           {
             #print "new message\n";
             $message_id ++;
             $my_id = $message_id;
-            $messages{$message} = $my_id;
+            $messages{ $component }->{ $message } = $my_id;
           }
           $line = "";
           if ($func eq "debug")
@@ -207,7 +242,7 @@ sub parse_valafile
             $line = "if ($package.log_trace_level >= $trace_level) { ";
             $danach =~ s/\n$//;
           }
-          $line .= $davor . "$package.log.$func(\"$vfile\", $line_number, \"$git_version\", $trace_level, $concat, $my_id$nach_string$danach";
+          $line .= $davor . "$package.log.$func( \"$component\", \"$vfile\", $line_number, \"$git_version\", $trace_level, $concat, $my_id$nach_string$danach";
           if ($func eq "debug")
           {
             $line .= " }\n";
@@ -237,9 +272,9 @@ sub parse_valafile
           }
 
           warn "message: $message - caption: $caption";
-          if ( !defined $messages{ $message } && $caption =~ /^"(.*)"$/ )
+          if ( !defined $messages{ $component }->{ $message } && $caption =~ /^"(.*)"$/ )
           {
-            $messages{ $message } = $1;
+            $messages{ $component }->{ $message } = $1;
           }
         }
       }
