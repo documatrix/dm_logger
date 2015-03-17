@@ -52,7 +52,7 @@ public class TestDMLogger
     OpenDMLib.DMArray<DMLogger.LogEntry> entry_bin = new OpenDMLib.DMArray<DMLogger.LogEntry>( );
     logger.entry_bin = entry_bin;
 
-    logger.error( "", 0, "", 0, false, 0 );
+    logger.error( "", "", 0, "", 0, false, 0 );
 
     GLib.assert( entry_bin.length == 1 );
     GLib.assert( entry_bin[ 0 ].type == DMLogger.LOG_ENTRY_ERROR );
@@ -71,7 +71,7 @@ namespace LoggerFactory
   public static DMLogger.Logger get_logger( )
   {
     string logfile = OpenDMLib.get_temp_file( ) + ".log";
-    DMLogger.Logger logger = new DMLogger.Logger( logfile, "TestDMLogger" );
+    DMLogger.Logger logger = new DMLogger.Logger( logfile );
     Testlib.add_temp_file( logfile );
 
     return logger;

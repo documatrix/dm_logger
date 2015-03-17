@@ -572,8 +572,6 @@ namespace DMLogger
     HashTable<string,int64?> logged_files;
     public bool log_to_console;
     public string? mdb_file;
-    
-    public string? component;
 
     /**
      * This hashtable will be filled by the read_mdb method and
@@ -668,28 +666,28 @@ namespace DMLogger
       this.threaded = false;
     }
 
-    public void debug(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
+    public void debug( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, this.component, l);
+      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, component, l);
     }
 
-    public void info(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
+    public void info( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, this.component, l);
+      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, component, l);
     }
 
-    public void warning(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
+    public void warning( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, this.component, l);
+      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, component, l);
     }
 
-    public void error(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
+    public void error( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, this.component, l);
+      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, component, l);
     }
 
 
@@ -794,11 +792,10 @@ namespace DMLogger
       }
     }
 
-    public Logger( string? logfile, string component = "" )
+    public Logger( string? logfile )
     {
       DMLogger.log_queue = new AsyncQueue<LogEntry>();
       this.logfile = logfile;
-      this.component = component;
       if ( logfile != null )
       {
         DMLogger.log_writer_fos = OpenDMLib.IO.open( logfile, "wb" );
@@ -955,7 +952,7 @@ namespace DMLogger
         uint16 trace_level = 0;
         this.get_from_buffer( &trace_level, sizeof( uint16 ) );
         int64 message_id = 0;
-                string component = "";
+        string component = "";
         this.get_from_buffer( &component, sizeof( string ) );
         this.get_from_buffer( &message_id, sizeof( int64 ) );
         int16 parameter_count = 0;
