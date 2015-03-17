@@ -144,7 +144,9 @@ namespace DMLogger
       return null;
     }
 
-    HashTable<string?,string>? mdb = new HashTable<string?,string>( str_hash, str_equal );
+    HashTable<string?,string>? mdb_mini;
+    HashTable<string,HashTable<string?,string>?>? mdb = new HashTable<string,HashTable<string?,string>?>( str_hash, str_equal );
+
     try
     {
       while ( true )
@@ -162,9 +164,19 @@ namespace DMLogger
         string[] tokens = ( (!)line ).split("\x01");
         if ( print_verbose == true )
         {
-          stdout.printf( "Adding %s = %s to mdb...\n", tokens[ 1 ], tokens[ 0 ] );
+          stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
         }
-        mdb.insert( tokens[ 1 ], tokens[ 0 ] );
+        
+        if( mdb.contains( tokens[ 0 ] ) )
+        { 
+          mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );          
+        }
+        else
+        {
+          mdb_mini = new HashTable<int64?,string>( str_hash, str_equal );
+          mdb_mini.insert( tokens[ 1 ], tokens[ 2 ] );
+          mdb.insert( tokens[ 0 ], mdb_mini );
+        }        
       }
     }
     catch ( Error e )
@@ -686,6 +698,9 @@ namespace DMLogger
       }
     }
 
+   /**
+    * Valadoc folgt
+    */
     public void start_not_threaded( )
     {
       this.threaded = false;
