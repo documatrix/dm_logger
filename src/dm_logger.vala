@@ -100,11 +100,11 @@ namespace DMLogger
         {
           stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
         }
-        
+
         unowned HashTable<int64?,string>? val = mdb.lookup( tokens[ 0 ] );
         if( val == null )
-        { 
-          mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );          
+        {
+          mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
         }
         else
         {
@@ -112,7 +112,7 @@ namespace DMLogger
           mdb_mini.insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
           mdb.insert( tokens[ 0 ], mdb_mini );
         }
-      }      
+      }
     }
     catch ( Error e )
     {
@@ -167,18 +167,18 @@ namespace DMLogger
         {
           stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
         }
-        
+
         unowned HashTable<string?,string>? val = mdb.lookup( tokens[ 0 ] );
         if( val == null )
-        { 
-          mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );          
+        {
+          mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );
         }
         else
         {
           mdb_mini = new HashTable<string?,string>( str_hash, str_equal );
           mdb_mini.insert( tokens[ 1 ], tokens[ 2 ] );
           mdb.insert( tokens[ 0 ], mdb_mini );
-        }        
+        }
       }
     }
     catch ( Error e )
@@ -208,8 +208,8 @@ namespace DMLogger
     public uint16 line;
 
    /**
-    * Der LogEntry Konstruktor
-    * params folgen
+    * The LogEntry construktor
+    * params will be added soon
     */
     public LogEntry( int64 message_id, string component, int64 file_id, uint16 type, uint16 line, uint16 trace_level, bool concat )
     {
@@ -228,10 +228,10 @@ namespace DMLogger
       this.tstamp = GLib.get_real_time( );
       this.parameters = {};
     }
-    
+
    /**
-    * Der LogEntry File_Info Konstruktor
-    * params folgen
+    * The LogEntry file_info construktor
+    * params will be added soon
     */
     public LogEntry.file_info( string filename, string component, string git_version, int64 file_id, uint16 line, uint16 trace_level, bool concat )
     {
@@ -307,7 +307,7 @@ namespace DMLogger
     public void print_out( HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose = true )
     {
       foreach( string s in _mdb.get_keys( ) )
-      {               
+      {
         unowned HashTable<int64?,string>? mdb = _mdb.lookup( s );
 
         char ESC = 27;
@@ -463,7 +463,7 @@ namespace DMLogger
         add_to_log_buffer( &tmp, sizeof( uint8 ) );
       }
       add_to_log_buffer( &this.trace_level, sizeof( uint16 ) );
-      add_to_log_buffer( &this.message_id, sizeof( int64 ) ); 
+      add_to_log_buffer( &this.message_id, sizeof( int64 ) );
 
       write_log_string( this.component );
 
@@ -614,17 +614,17 @@ namespace DMLogger
      * This hashtable will be filled by the read_mdb method and
      * contains the component and another hastable filled with
      * the messages (with message ids names as keys).
-     */     
-    public HashTable<string,HashTable<int64?,string>?>? mdb;
-    
-    /**
-     * This hashtable contains the filenames of the files which
-     * already did a log output.
-     * The key is a auto-generated file id and is used when printing the log message
-     * to the log-file.
      */
+    public HashTable<string,HashTable<int64?,string>?>? mdb;
+
+   /**
+    * This hashtable contains the filenames of the files which
+    * already did a log output.
+    * The key is a auto-generated file id and is used when printing the log message
+    * to the log-file.
+    */
     public HashTable<int64?,string>? files;
-    
+
    /**
     * Sets if the Logger is threaded.
     */
