@@ -126,7 +126,7 @@ namespace DMLogger
    * @param print_verbose This flag specifies if the reading process should generate some log messages...
    * @return A hashtable with captions as keys and texts as values or null if the mdb could not be read successfully.
    */
-  public static HashTable<string?,string>? read_caption_mdb( string? mdb_file, bool print_verbose = false )
+  public static HashTable<string,HashTable<string?,string>?>? read_caption_mdb( string? mdb_file, bool print_verbose = false )
   {
     if ( mdb_file == null )
     {
@@ -173,7 +173,7 @@ namespace DMLogger
         }
         else
         {
-          mdb_mini = new HashTable<int64?,string>( str_hash, str_equal );
+          mdb_mini = new HashTable<string?,string>( str_hash, str_equal );
           mdb_mini.insert( tokens[ 1 ], tokens[ 2 ] );
           mdb.insert( tokens[ 0 ], mdb_mini );
         }        
@@ -488,10 +488,13 @@ namespace DMLogger
     /* Check if a message database is loaded and then get the message from the mdb... */
     if ( DMLogger.log != null && DMLogger.log.mdb != null )
     {
-      unowned string? mdb_message = DMLogger.log.caption_mdb.lookup( caption_name );
-      if ( mdb_message != null )
+      foreach( string? s in DMLogger.log.caption_mdb.get_keys( ) )
       {
-        message = (!)mdb_message;
+        unowned string? mdb_message = s;
+        if ( mdb_message != null )
+        {
+          message = (!)mdb_message;
+        }
       }
     }
 
@@ -629,7 +632,7 @@ namespace DMLogger
      * This hashtable will be filled by the read_caption_mdb method and
      * contains the messages with caption names as keys.
      */
-    public HashTable<string,string>? caption_mdb;
+    public HashTable<string,HashTable<string?,string>?>? caption_mdb;
 
     /* Ein Array das mit Log-Entries befüllt wird, wenn es "von außen" gesetzt wird. */
     public DMArray<LogEntry>? entry_bin = null;
