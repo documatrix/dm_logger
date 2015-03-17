@@ -794,7 +794,7 @@ namespace DMLogger
       }
     }
 
-    public Logger( string? logfile, string component )
+    public Logger( string? logfile, string component = "" )
     {
       DMLogger.log_queue = new AsyncQueue<LogEntry>();
       this.logfile = logfile;
@@ -955,17 +955,17 @@ namespace DMLogger
         uint16 trace_level = 0;
         this.get_from_buffer( &trace_level, sizeof( uint16 ) );
         int64 message_id = 0;
+                string component = "";
+        this.get_from_buffer( &component, sizeof( string ) );
         this.get_from_buffer( &message_id, sizeof( int64 ) );
         int16 parameter_count = 0;
         this.get_from_buffer( &parameter_count, sizeof( int16 ) );
-        string product = "";
-        this.get_from_buffer( &product, sizeof( string ) );
         string[] tmp = {};
         for (int p = 0; p < parameter_count; p++)
         {
           tmp += this.read_string( );
         }
-        e = new LogEntry(message_id, product, file_id, type, line, trace_level, concat_b);
+        e = new LogEntry(message_id, component, file_id, type, line, trace_level, concat_b);
         e.parameters = tmp;
         e.pid = pid;
         e.tid = tid;
