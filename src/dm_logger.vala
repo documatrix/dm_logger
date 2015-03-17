@@ -101,7 +101,8 @@ namespace DMLogger
           stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
         }
         
-        if( mdb.contains( tokens[ 0 ] ) )
+        unowned HashTable<int64?,string>? val = mdb.lookup( tokens[ 0 ] );
+        if( val == null )
         { 
           mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );          
         }
@@ -167,7 +168,8 @@ namespace DMLogger
           stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
         }
         
-        if( mdb.contains( tokens[ 0 ] ) )
+        unowned HashTable<string?,string>? val = mdb.lookup( tokens[ 0 ] );
+        if( val == null )
         { 
           mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );          
         }
