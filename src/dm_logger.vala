@@ -455,14 +455,9 @@ namespace DMLogger
       }
       add_to_log_buffer( &this.trace_level, sizeof( uint16 ) );
       add_to_log_buffer( &this.message_id, sizeof( int64 ) ); 
-      
-      int16 comptmp = (int16)this.component.length; 
-      add_to_log_buffer( &comptmp, sizeof( int16 ) );    
-      for ( int i = 0; i < this.component.length; i++ )
-      {
-        write_log_string( this.component[ i ] );
-      }
-      
+
+      write_log_string( this.component );
+
       int16 tmp = (int16)this.parameters.length;
       add_to_log_buffer( &tmp, sizeof( int16 ) );
       for (int i = 0; i < this.parameters.length; i++)
@@ -728,7 +723,7 @@ namespace DMLogger
 
     private void __generate_message__(string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, va_list args)
     {
-      int64 file_id = this.__handle_file__(filename, git_version, line_number, trace_level);
+      int64 file_id = this.__handle_file__(filename, component, git_version, line_number, trace_level);
       LogEntry e = new LogEntry(message_id, component, file_id, type, line_number, trace_level, concat);
       string[] tmp = {};
       string? v;
@@ -767,8 +762,10 @@ namespace DMLogger
         }
       }
     }
-
-    private int64 __handle_file__(string filename, string git_version, uint16 line_number, uint16 trace_level)
+   /**
+    * Valadoc folgt
+    */
+    private int64 __handle_file__( string filename, string component, string git_version, uint16 line_number, uint16 trace_level )
     {
       int64? file_id = this.logged_files.lookup(filename);
       if (file_id == null)
@@ -776,7 +773,7 @@ namespace DMLogger
         /* Dieses File bringt zum ersten mal eine Log-Meldung => File-Info Message mit GIT-Version generieren */
         this.__last_file_id__ ++;
         file_id = this.__last_file_id__;
-        LogEntry fi = new LogEntry.file_info(filename, git_version, file_id, line_number, trace_level, false);
+        LogEntry fi = new LogEntry.file_info( filename, component, git_version, file_id, line_number, trace_level, false );
         if ( this.threaded )
         {
           DMLogger.log_queue.push( fi );
