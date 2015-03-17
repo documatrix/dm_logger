@@ -72,13 +72,15 @@ public int main(string[] args)
   {
     critical("No mdb-file given!");
   }
-
-  debug("Starting %s, Version %s", product_name, product_version);
+  
+  debug("Starting %s, Version %s\n", product_name, product_version);
   DMLogger.LogReader lr = new DMLogger.LogReader( log_file );
+  
   /* MDB lesen */
   HashTable<string,HashTable<int64?,string>?>? mdb = DMLogger.read_mdb(mdb_file, print_verbose);
   HashTable<int64?,string>? files = new HashTable<int64?,string>(int_hash, int_equal);
 
+ 
   while(true)
   {
     LogEntry le = lr.next_entry();
@@ -88,6 +90,7 @@ public int main(string[] args)
       break;
     }
     le.print_out(files, mdb, print_verbose);
+  
   }
   debug("Terminating %s, Version %s", product_name, product_version);
   return 0;

@@ -78,8 +78,8 @@ namespace DMLogger
       return null;
     }
 
-    HashTable<int64?,string>? mdb_mini = new HashTable<int64?,string>(int64_hash, int64_equal);
-    HashTable<string,HashTable<int64?,string>?>? mdb = new HashTable<string,HashTable<int64?,string>?>(int64_hash, int64_equal);
+    HashTable<int64?,string>? mdb_mini;
+    HashTable<string,HashTable<int64?,string>?>? mdb = new HashTable<string,HashTable<int64?,string>?>( str_hash, str_equal );
 
     try
     {
@@ -98,13 +98,25 @@ namespace DMLogger
         string[] tokens = ( (!)line ).split( "\x01" );
         if ( print_verbose == true )
         {
-          stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 2 ] ), tokens[ 1 ] );
+          stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
         }
         
-        mdb_mini.insert( int64.parse(tokens[ 2 ] ), tokens[ 1 ] );
-        mdb.insert( tokens[ 0 ], mdb_mini );
-      }
-      
+        if( mdb.contains( tokens[ 0 ] ) )
+        {
+          HashTable<string,HashTable<int64?,string>?> loaded = mdb.lookup( tokens[ 0 ] );
+          
+          mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
+          mdb_mini.insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
+          
+          loaded.insert( tokens[ 0 ], mdb_mini );
+        }
+        else
+        {
+          mdb_mini = new HashTable<int64?,string>(int64_hash, int64_equal);
+          mdb_mini.insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
+          mdb.insert( tokens[ 0 ], mdb_mini );
+        }
+      }      
     }
     catch ( Error e )
     {
@@ -172,6 +184,7 @@ namespace DMLogger
     public uint16 tid;
     public uint16 pid;
     public int64 message_id;
+    /* Gibt die aktuelle Komponente an */
     public string component;
     public bool exit_entry;
     public bool concat;
@@ -185,7 +198,11 @@ namespace DMLogger
     public uint16 trace_level;
     public uint16 line;
 
-    public LogEntry(int64 message_id, string component, int64 file_id, uint16 type, uint16 line, uint16 trace_level, bool concat)
+   /**
+    * Der LogEntry Konstruktor
+    * params folgen
+    */
+    public LogEntry( int64 message_id, string component, int64 file_id, uint16 type, uint16 line, uint16 trace_level, bool concat )
     {
       this.exit_entry = false;
       this.tid = (uint16)OpenDMLib.gettid( );
@@ -202,10 +219,14 @@ namespace DMLogger
       this.tstamp = GLib.get_real_time( );
       this.parameters = {};
     }
-
-    public LogEntry.file_info(string filename, string git_version, int64 file_id, uint16 line, uint16 trace_level, bool concat)
+    
+   /**
+    * Der LogEntry File_Info Konstruktor
+    * params folgen
+    */
+    public LogEntry.file_info( string filename, string component, string git_version, int64 file_id, uint16 line, uint16 trace_level, bool concat )
     {
-      this(0, "", file_id, LOG_ENTRY_NONE, line, trace_level, concat);
+      this( 0, component, file_id, LOG_ENTRY_NONE, line, trace_level, concat );
       this.record_type = LOG_ENTRY_RECORD_TYPE_FILEINFO;
       parameters = {filename, git_version};
     }
@@ -271,133 +292,135 @@ namespace DMLogger
       return new_message.str;
     }
 
-    public void print_out(HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose = true)
+   /**
+    * Valadoc folgt...
+    */
+    public void print_out( HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose = true )
     {
-	  foreach( string s in _mdb.get_keys( ) )
-	  {	
-	    	  
-      HashTable<int64?,string>? mdb = _mdb.lookup( s );
-      
-      char ESC = 27;
-      if (print_verbose == true)
-      {
-        stdout.printf("\nLog-Entry\n");
-        stdout.printf("\tProcess-ID: %d\n", this.pid);
-        stdout.printf("\tThread-ID: %d\n", this.tid);
-        stdout.printf("\tTimestamp: %lld\n", this.tstamp);
-        stdout.printf("\tRecord-Type: %d\n", this.record_type);
-        stdout.printf("\tFile-ID: %g\n", this.file_id);
-        stdout.printf("\tLine: %d\n", this.line);
-        stdout.printf("\tType: %d\n", this.type);
-        stdout.printf("\tProduct: %\ns", this.component);
-        if (this.concat == true)
+      foreach( string s in _mdb.get_keys( ) )
+      {               
+        unowned HashTable<int64?,string>? mdb = _mdb.lookup( s );
+
+        char ESC = 27;
+        if (print_verbose == true)
         {
-          stdout.printf("\tConcat: true\n");
-        }
-        else
-        {
-          stdout.printf("\tConcat: false\n");
-        }
-        stdout.printf("\tTrace-Level: %d\n", this.trace_level);
-        if (this.record_type == LOG_ENTRY_RECORD_TYPE_FILEINFO)
-        {
-          stdout.printf("=== FILEDEF ===\n");
-          stdout.printf("\tFilename: %s\n", this.parameters[0]);
-          stdout.printf("\tGit-Version: %s\n", this.parameters[1]);
-        }
-        else
-        {
-          stdout.printf("\tMessage-ID: %g\n", this.message_id);
-          if (mdb != null && mdb.lookup(this.message_id) != null)
+          stdout.printf( "\nLog-Entry\n" );
+          stdout.printf( "\tProcess-ID: %d\n", this.pid );
+          stdout.printf( "\tThread-ID: %d\n", this.tid );
+          stdout.printf( "\tTimestamp: %lld\n", this.tstamp );
+          stdout.printf( "\tRecord-Type: %d\n", this.record_type );
+          stdout.printf( "\tFile-ID: %g\n", this.file_id );
+          stdout.printf( "\tLine: %d\n", this.line );
+          stdout.printf( "\tType: %d\n", this.type );
+          stdout.printf( "\tComponent: %s\n", this.component );
+          if (this.concat == true)
           {
-            string? message = mdb.lookup(this.message_id);
+            stdout.printf("\tConcat: true\n");
+          }
+          else
+          {
+            stdout.printf("\tConcat: false\n");
+          }
+          stdout.printf("\tTrace-Level: %d\n", this.trace_level);
+          if (this.record_type == LOG_ENTRY_RECORD_TYPE_FILEINFO)
+          {
+            stdout.printf("=== FILEDEF ===\n");
+            stdout.printf("\tFilename: %s\n", this.parameters[0]);
+            stdout.printf("\tGit-Version: %s\n", this.parameters[1]);
+          }
+          else
+          {
+            stdout.printf("\tMessage-ID: %g\n", this.message_id);
+            if (mdb != null && mdb.lookup(this.message_id) != null)
+            {
+              string? message = mdb.lookup(this.message_id);
+              if ( message == null )
+              {
+                stderr.printf( "\tMessage for Message-ID %g could not be found!\n", this.message_id );
+              }
+              else
+              {
+                stdout.printf("\tMessage: %s\n", message);
+                stdout.printf("\tMessage Parsed: %s\n", this.parse_message( message, parameters ) );
+              }
+            }
+            else if (mdb == null)
+            {
+              stdout.printf("\tMessage: %g\n", this.message_id);
+            }
+            else if (this.message_id != 0)
+            {
+              stdout.printf("=== THIS MESSAGE WAS NOT DEFINED IN THE MESSAGE DATABASE! ===\n");
+            }
+            stdout.printf("\tParameters:\n");
+            foreach (string p in this.parameters)
+            {
+              stdout.printf("\t\t%s\n", p);
+            }
+          }
+        }
+        else
+        {
+          if (this.record_type == LOG_ENTRY_RECORD_TYPE_MESSAGE)
+          {
+            if (this.type == LOG_ENTRY_ERROR)
+            {
+              stdout.printf("%c[1;31m",ESC);
+            }
+           if (this.type == LOG_ENTRY_WARNING)
+            {
+              stdout.printf("%c[1m",ESC);
+            }
+            if (this.type == LOG_ENTRY_DEBUG)
+            {
+             stdout.printf("DEBUG ");
+            }
+            else if (this.type == LOG_ENTRY_INFO)
+            {
+              stdout.printf("INFO ");
+            }
+            else if (this.type == LOG_ENTRY_WARNING)
+            {
+              stdout.printf("WARNING ");
+            }
+            else if (this.type == LOG_ENTRY_ERROR)
+            {
+              stdout.printf("ERROR ");
+            }
+            DMDateTime dt = new DMDateTime.from_unix_local( (int64)( this.tstamp / (int64)1000000 ) );
+            stdout.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
+            unowned string? _filename;
+            string? filename = null;
+            if ((_filename = files.lookup(this.file_id)) == null)
+            {
+              filename = "<unknown file - file-id: " + this.file_id.to_string( ) + ">";
+            }
+            else
+            {
+              filename = _filename;
+            }
+            stdout.printf("(%s:%u) ", filename, this.line);
+            unowned string? message = mdb.lookup(this.message_id);
             if ( message == null )
             {
               stderr.printf( "\tMessage for Message-ID %g could not be found!\n", this.message_id );
             }
             else
             {
-              stdout.printf("\tMessage: %s\n", message);
-              stdout.printf("\tMessage Parsed: %s\n", this.parse_message( message, parameters ) );
+              stdout.printf( "%s", this.parse_message( message, parameters ) );
             }
+            if (this.type == LOG_ENTRY_ERROR || this.type == LOG_ENTRY_WARNING)
+            {
+              stdout.printf("%c[0m",ESC);
+            }
+            stdout.printf("\n");
           }
-          else if (mdb == null)
+          else if (this.record_type == LOG_ENTRY_RECORD_TYPE_FILEINFO)
           {
-            stdout.printf("\tMessage: %g\n", this.message_id);
-          }
-          else if (this.message_id != 0)
-          {
-            stdout.printf("=== THIS MESSAGE WAS NOT DEFINED IN THE MESSAGE DATABASE! ===\n");
-          }
-          stdout.printf("\tParameters:\n");
-          foreach (string p in this.parameters)
-          {
-            stdout.printf("\t\t%s\n", p);
+            files.insert(this.file_id, this.parameters[0]);
           }
         }
       }
-      else
-      {
-        if (this.record_type == LOG_ENTRY_RECORD_TYPE_MESSAGE)
-        {
-          if (this.type == LOG_ENTRY_ERROR)
-          {
-            stdout.printf("%c[1;31m",ESC);
-          }
-          if (this.type == LOG_ENTRY_WARNING)
-          {
-            stdout.printf("%c[1m",ESC);
-          }
-          if (this.type == LOG_ENTRY_DEBUG)
-          {
-            stdout.printf("DEBUG ");
-          }
-          else if (this.type == LOG_ENTRY_INFO)
-          {
-            stdout.printf("INFO ");
-          }
-          else if (this.type == LOG_ENTRY_WARNING)
-          {
-            stdout.printf("WARNING ");
-          }
-          else if (this.type == LOG_ENTRY_ERROR)
-          {
-            stdout.printf("ERROR ");
-          }
-          DMDateTime dt = new DMDateTime.from_unix_local( (int64)( this.tstamp / (int64)1000000 ) );
-          stdout.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
-          unowned string? _filename;
-          string? filename = null;
-          if ((_filename = files.lookup(this.file_id)) == null)
-          {
-            filename = "<unknown file - file-id: " + this.file_id.to_string( ) + ">";
-          }
-          else
-          {
-            filename = _filename;
-          }
-          stdout.printf("(%s:%u) ", filename, this.line);
-          unowned string? message = mdb.lookup(this.message_id);
-          if ( message == null )
-          {
-            stderr.printf( "\tMessage for Message-ID %g could not be found!\n", this.message_id );
-          }
-          else
-          {
-            stdout.printf( "%s", this.parse_message( message, parameters ) );
-          }
-          if (this.type == LOG_ENTRY_ERROR || this.type == LOG_ENTRY_WARNING)
-          {
-            stdout.printf("%c[0m",ESC);
-          }
-          stdout.printf("\n");
-        }
-        else if (this.record_type == LOG_ENTRY_RECORD_TYPE_FILEINFO)
-        {
-          files.insert(this.file_id, this.parameters[0]);
-        }
-      }
-	  }
     }
 
     /* Aufbau einer Log-Message */
@@ -431,8 +454,15 @@ namespace DMLogger
         add_to_log_buffer( &tmp, sizeof( uint8 ) );
       }
       add_to_log_buffer( &this.trace_level, sizeof( uint16 ) );
-      add_to_log_buffer( &this.message_id, sizeof( int64 ) );
-      add_to_log_buffer( &this.component, sizeof( string ) );
+      add_to_log_buffer( &this.message_id, sizeof( int64 ) ); 
+      
+      int16 comptmp = (int16)this.component.length; 
+      add_to_log_buffer( &comptmp, sizeof( int16 ) );    
+      for ( int i = 0; i < this.component.length; i++ )
+      {
+        write_log_string( this.component[ i ] );
+      }
+      
       int16 tmp = (int16)this.parameters.length;
       add_to_log_buffer( &tmp, sizeof( int16 ) );
       for (int i = 0; i < this.parameters.length; i++)
@@ -575,10 +605,11 @@ namespace DMLogger
 
     /**
      * This hashtable will be filled by the read_mdb method and
-     * contains the messages with message ids names as keys.
-     */
-     
+     * contains the component and another hastable filled with
+     * the messages (with message ids names as keys).
+     */     
     public HashTable<string,HashTable<int64?,string>?>? mdb;
+    
     /**
      * This hashtable contains the filenames of the files which
      * already did a log output.
@@ -586,6 +617,10 @@ namespace DMLogger
      * to the log-file.
      */
     public HashTable<int64?,string>? files;
+    
+   /**
+    * Sets if the Logger is threaded.
+    */
     public bool threaded = true;
 
     /**
@@ -951,9 +986,9 @@ namespace DMLogger
         }
         uint16 trace_level = 0;
         this.get_from_buffer( &trace_level, sizeof( uint16 ) );
-        int64 message_id = 0;
         string component = "";
-        this.get_from_buffer( &component, sizeof( string ) );
+        component = this.read_string();
+        int64 message_id = 0;
         this.get_from_buffer( &message_id, sizeof( int64 ) );
         int16 parameter_count = 0;
         this.get_from_buffer( &parameter_count, sizeof( int16 ) );
