@@ -8,7 +8,7 @@ copy_files:
 	cp -u -r -p cmake build/
 	cp -u -r -p doc build/
 	cp -u -r -p src build/
-	#cp -u -r -p tests build/
+	cp -u -r -p tests build/
 	cp -u -r -p CMakeLists.txt build/
 	find build/ -name CMakeCache.txt -delete
 
@@ -32,7 +32,7 @@ testdir: build
 	mkdir -p build/testdir
 
 test: testdir
-	cd build/tests && gtester ./test_pslib -k -o ../testdir/ergebnis.xml || exit 0
+	cd build/tests && gtester ./test_dm_logger -k -o ../testdir/ergebnis.xml || exit 0
 	cd build && trv ${TRVPARAM} -i testdir/ergebnis.xml
 
 test_quiet: test
