@@ -172,7 +172,7 @@ namespace DMLogger
     public uint16 tid;
     public uint16 pid;
     public int64 message_id;
-    public string product;
+    public string component;
     public bool exit_entry;
     public bool concat;
     public int64 tstamp;
@@ -185,7 +185,7 @@ namespace DMLogger
     public uint16 trace_level;
     public uint16 line;
 
-    public LogEntry(int64 message_id, string product, int64 file_id, uint16 type, uint16 line, uint16 trace_level, bool concat)
+    public LogEntry(int64 message_id, string component, int64 file_id, uint16 type, uint16 line, uint16 trace_level, bool concat)
     {
       this.exit_entry = false;
       this.tid = (uint16)OpenDMLib.gettid( );
@@ -197,7 +197,7 @@ namespace DMLogger
       this.line = line;
       this.trace_level = trace_level;
       this.concat = concat;
-      this.product = product;
+      this.component = component;
 
       this.tstamp = GLib.get_real_time( );
       this.parameters = {};
@@ -289,7 +289,7 @@ namespace DMLogger
         stdout.printf("\tFile-ID: %g\n", this.file_id);
         stdout.printf("\tLine: %d\n", this.line);
         stdout.printf("\tType: %d\n", this.type);
-        stdout.printf("\tProduct: %\ns", this.product);
+        stdout.printf("\tProduct: %\ns", this.component);
         if (this.concat == true)
         {
           stdout.printf("\tConcat: true\n");
@@ -432,7 +432,7 @@ namespace DMLogger
       }
       add_to_log_buffer( &this.trace_level, sizeof( uint16 ) );
       add_to_log_buffer( &this.message_id, sizeof( int64 ) );
-      add_to_log_buffer( &this.product, sizeof( string ) );
+      add_to_log_buffer( &this.component, sizeof( string ) );
       int16 tmp = (int16)this.parameters.length;
       add_to_log_buffer( &tmp, sizeof( int16 ) );
       for (int i = 0; i < this.parameters.length; i++)
@@ -573,7 +573,7 @@ namespace DMLogger
     public bool log_to_console;
     public string? mdb_file;
     
-    public string? product;
+    public string? component;
 
     /**
      * This hashtable will be filled by the read_mdb method and
@@ -671,32 +671,32 @@ namespace DMLogger
     public void debug(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, this.product, l);
+      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, this.component, l);
     }
 
     public void info(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, this.product, l);
+      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, this.component, l);
     }
 
     public void warning(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, this.product, l);
+      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, this.component, l);
     }
 
     public void error(string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, this.product, l);
+      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, this.component, l);
     }
 
 
-    private void __generate_message__(string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string product, va_list args)
+    private void __generate_message__(string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, va_list args)
     {
       int64 file_id = this.__handle_file__(filename, git_version, line_number, trace_level);
-      LogEntry e = new LogEntry(message_id, product, file_id, type, line_number, trace_level, concat);
+      LogEntry e = new LogEntry(message_id, component, file_id, type, line_number, trace_level, concat);
       string[] tmp = {};
       string? v;
       while (true)
@@ -794,11 +794,11 @@ namespace DMLogger
       }
     }
 
-    public Logger( string? logfile, string product )
+    public Logger( string? logfile, string component )
     {
       DMLogger.log_queue = new AsyncQueue<LogEntry>();
       this.logfile = logfile;
-      this.product = product;
+      this.component = component;
       if ( logfile != null )
       {
         DMLogger.log_writer_fos = OpenDMLib.IO.open( logfile, "wb" );
