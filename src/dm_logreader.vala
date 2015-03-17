@@ -76,7 +76,7 @@ public int main(string[] args)
   debug("Starting %s, Version %s", product_name, product_version);
   DMLogger.LogReader lr = new DMLogger.LogReader(log_file);
   /* MDB lesen */
-  HashTable<int64?,string>? mdb = DMLogger.read_mdb(mdb_file, print_verbose);
+  HashTable<string,HashTable<int64?,string>?>? mdb = DMLogger.read_mdb(mdb_file, print_verbose);
   HashTable<int64?,string>? files = new HashTable<int64?,string>(int_hash, int_equal);
 
   while(true)

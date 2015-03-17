@@ -71,7 +71,7 @@ namespace LoggerFactory
   public static DMLogger.Logger get_logger( )
   {
     string logfile = OpenDMLib.get_temp_file( ) + ".log";
-    DMLogger.Logger logger = new DMLogger.Logger( logfile );
+    DMLogger.Logger logger = new DMLogger.Logger( logfile, "TestDMLogger" );
     Testlib.add_temp_file( logfile );
 
     return logger;
