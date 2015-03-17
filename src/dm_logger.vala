@@ -102,17 +102,12 @@ namespace DMLogger
         }
         
         if( mdb.contains( tokens[ 0 ] ) )
-        {
-          HashTable<string,HashTable<int64?,string>?> loaded = mdb.lookup( tokens[ 0 ] );
-          
-          mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
-          mdb_mini.insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
-          
-          loaded.insert( tokens[ 0 ], mdb_mini );
+        { 
+          mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );          
         }
         else
         {
-          mdb_mini = new HashTable<int64?,string>(int64_hash, int64_equal);
+          mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
           mdb_mini.insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
           mdb.insert( tokens[ 0 ], mdb_mini );
         }
