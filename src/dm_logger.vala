@@ -168,12 +168,8 @@ namespace DMLogger
           stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
         }
 
-<<<<<<< HEAD
         unowned HashTable<string?,string>? val = mdb.lookup( tokens[ 0 ] );
         if( val == null )
-=======
-        if( mdb.contains( tokens[ 0 ] ) )
->>>>>>> Diverse Korrekturen
         {
           mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );
         }
@@ -310,13 +306,7 @@ namespace DMLogger
     */
     public void print_out( HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose = true )
     {
-<<<<<<< HEAD
-      foreach( string s in _mdb.get_keys( ) )
-      {
-        unowned HashTable<int64?,string>? mdb = _mdb.lookup( s );
-=======
       unowned HashTable<int64?,string>? mdb = _mdb.lookup( this.component );
->>>>>>> Diverse Korrekturen
 
       char ESC = 27;
       if ( print_verbose == true )
@@ -613,17 +603,6 @@ namespace DMLogger
      * This hashtable will be filled by the read_mdb method and
      * contains the component and another hastable filled with
      * the messages (with message ids names as keys).
-<<<<<<< HEAD
-=======
-     */
-    public HashTable<string,HashTable<int64?,string>?>? mdb;
-
-    /**
-     * This hashtable contains the filenames of the files which
-     * already did a log output.
-     * The key is a auto-generated file id and is used when printing the log message
-     * to the log-file.
->>>>>>> Diverse Korrekturen
      */
     public HashTable<string,HashTable<int64?,string>?>? mdb;
 
