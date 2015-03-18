@@ -78,8 +78,8 @@ namespace DMLogger
       return null;
     }
 
-    HashTable<int64?,string>? mdb_mini;
     HashTable<string,HashTable<int64?,string>?>? mdb = new HashTable<string,HashTable<int64?,string>?>( str_hash, str_equal );
+    HashTable<int64?,string>? mdb_mini;
 
     try
     {
@@ -101,14 +101,14 @@ namespace DMLogger
           stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
         }
 
-        if ( mdb.lookup( tokens[ 0 ] ) == null )
+        if ( mdb.lookup( tokens[ 0 ] ) != null )
         {
           mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
         }
         else
         {
           mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
-          mdb_mini.insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
+          mdb_mini.insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
           mdb.insert( tokens[ 0 ], mdb_mini );
         }
       }
@@ -117,6 +117,7 @@ namespace DMLogger
     {
       stderr.printf( "An error occured while parsing the message database %s! %s\n", (!)mdb_file, e.message );
     }
+
     return mdb;
   }
 
@@ -167,7 +168,7 @@ namespace DMLogger
           stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
         }
 
-        if ( mdb.lookup( tokens[ 0 ] ) == null )
+        if ( mdb.lookup( tokens[ 0 ] ) != null )
         {
           mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );
         }
@@ -853,7 +854,6 @@ namespace DMLogger
       if ( log_to_console )
       {
         this.mdb_file = mdb_file;
-        stdout.printf( "Logger read_mdb \n" );
         this.mdb = DMLogger.read_mdb( mdb_file, false );
         this.caption_mdb = DMLogger.read_caption_mdb( mdb_file, false );
         if ( this.mdb == null || this.caption_mdb == null )
