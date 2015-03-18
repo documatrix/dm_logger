@@ -34,6 +34,7 @@ PACKAGES
   ${VALA_PACKAGES} ${DM_LOGGER_NAME}
 OPTIONS
   --thread --vapidir=${CMAKE_SOURCE_DIR}/src --vapidir=${CMAKE_INSTALL_PREFIX}/share/vala/vapi -g
+  ${CMAKE_VALA_OPTS} ${VAPIDIRS_ARGS}
 )
 
 add_executable(

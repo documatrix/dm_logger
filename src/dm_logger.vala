@@ -225,7 +225,13 @@ namespace DMLogger
       this.concat = concat;
       this.component = component;
 
-      this.tstamp = GLib.get_real_time( );
+      #if GLIB_2_28
+        this.tstamp = GLib.get_real_time( );
+      #else
+        TimeVal tim = TimeVal( );
+        tim.get_current_time( );
+        this.tstamp = (int64)( tim.tv_usec + ( tim.tv_sec * 1000000 ) );
+      #endif
       this.parameters = {};
     }
 
@@ -589,9 +595,7 @@ namespace DMLogger
 #if GLIB_2_32
     private Thread<void*> running;
 #else
-    private Thread<void*> running;
-
-//    private unowned Thread<void*> running;
+    private unowned Thread<void*> running;
 #endif
     string logfile;
     int64 __last_file_id__;
@@ -681,9 +685,7 @@ namespace DMLogger
 #if GLIB_2_32
         this.running = new Thread<void*>( "Logger", this.run );
 #else
-        this.running = new Thread<void*>( "Logger", this.run );
-
-//        this.running = Thread.create<void*>( this.run, true );
+        this.running = Thread.create<void*>( this.run, true );
 #endif
       }
       catch (Error e)
