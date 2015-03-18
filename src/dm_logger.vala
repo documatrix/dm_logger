@@ -29,21 +29,21 @@ namespace DMLogger
   {
     if ( log_buffer_index > 0 )
     {
-      log_writer_fos.write( log_buffer[0:log_buffer_index]);
+      log_writer_fos.write( log_buffer[ 0:log_buffer_index ] );
       log_buffer_index = 0;
     }
   }
-  public void add_to_log_buffer(void * data, size_t size) throws Error
+  public void add_to_log_buffer( void * data, size_t size ) throws Error
   {
     try
     {
       if ( log_buffer_index + size > BUFFER_SIZE )
       {
         /* Das geht sich nicht mehr aus! */
-        log_writer_fos.write(log_buffer[0:log_buffer_index]);
+        log_writer_fos.write( log_buffer[ 0:log_buffer_index ] );
         log_buffer_index = 0;
       }
-      Memory.copy( &log_buffer[log_buffer_index], data, size);
+      Memory.copy( &log_buffer[ log_buffer_index ], data, size );
       log_buffer_index += size;
     }
     catch (Error e)
@@ -51,11 +51,11 @@ namespace DMLogger
       error( "Error writing to logfile: %s", e.message );
     }
   }
-  public void write_log_string(string s) throws Error
+  public void write_log_string( string s ) throws Error
   {
-    char[] tmp = s.to_utf8();
+    char[] tmp = s.to_utf8( );
     int64 l = tmp.length;
-    add_to_log_buffer(&l, sizeof(int64));
+    add_to_log_buffer( &l, sizeof( int64 ) );
     add_to_log_buffer( tmp, (size_t)l );
   }
 
@@ -101,8 +101,7 @@ namespace DMLogger
           stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
         }
 
-        unowned HashTable<int64?,string>? val = mdb.lookup( tokens[ 0 ] );
-        if( val == null )
+        if ( mdb.lookup( tokens[ 0 ] ) == null )
         {
           mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
         }
@@ -145,7 +144,7 @@ namespace DMLogger
       return null;
     }
 
-    HashTable<string?,string>? mdb_mini;
+    HashTable<string?,string>? mdb_mini = null;
     HashTable<string,HashTable<string?,string>?>? mdb = new HashTable<string,HashTable<string?,string>?>( str_hash, str_equal );
 
     try
@@ -162,14 +161,13 @@ namespace DMLogger
           break;
         }
 
-        string[] tokens = ( (!)line ).split("\x01");
+        string[] tokens = ( (!)line ).split( "\x01" );
         if ( print_verbose == true )
         {
           stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
         }
 
-        unowned HashTable<string?,string>? val = mdb.lookup( tokens[ 0 ] );
-        if( val == null )
+        if ( mdb.lookup( tokens[ 0 ] ) == null )
         {
           mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );
         }
@@ -243,12 +241,12 @@ namespace DMLogger
     {
       this( 0, component, file_id, LOG_ENTRY_NONE, line, trace_level, concat );
       this.record_type = LOG_ENTRY_RECORD_TYPE_FILEINFO;
-      parameters = {filename, git_version};
+      parameters = { filename, git_version };
     }
 
-    public string parse_message(string? message, string[] params)
+    public string parse_message( string? message, string[] params )
     {
-      StringBuilder new_message = new StringBuilder();
+      StringBuilder new_message = new StringBuilder( );
 
       for (int i = 0; i < message.char_count(); i++)
       {
@@ -638,9 +636,9 @@ namespace DMLogger
      */
     public void* run()
     {
-      while(true)
+      while( true )
       {
-        LogEntry? e = DMLogger.log_queue.pop();
+        LogEntry? e = DMLogger.log_queue.pop( );
         if ( e == null )
         {
           break;
@@ -651,7 +649,7 @@ namespace DMLogger
           {
             e.out_file( );
           }
-          if (e == null || e.exit_entry == true)
+          if ( e == null || e.exit_entry == true )
           {
             if ( DMLogger.log_writer_fos != null )
             {
@@ -668,12 +666,12 @@ namespace DMLogger
             this.entry_bin.push( e );
           }
         }
-        catch (Error e)
+        catch ( Error e )
         {
-          GLib.critical("Error while logging message: " + e.message);
+          GLib.critical( "Error while logging message: " + e.message );
         }
       }
-      GLib.debug("Exiting logger thread");
+      GLib.debug( "Exiting logger thread" );
       //Thread.self().exit(null);
       return null;
     }
@@ -702,41 +700,41 @@ namespace DMLogger
       this.threaded = false;
     }
 
-    public void debug( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
+    public void debug( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
-      va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, component, l);
+      va_list l = va_list( );
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, component, l );
     }
 
-    public void info( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
+    public void info( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, component, l);
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, component, l );
     }
 
-    public void warning( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
+    public void warning( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, component, l);
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, component, l );
     }
 
-    public void error( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ...)
+    public void error( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
       va_list l = va_list();
-      this.__generate_message__(filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, component, l);
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, component, l );
     }
 
 
-    private void __generate_message__(string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, va_list args)
+    private void __generate_message__( string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, va_list args )
     {
-      int64 file_id = this.__handle_file__(filename, component, git_version, line_number, trace_level);
-      LogEntry e = new LogEntry(message_id, component, file_id, type, line_number, trace_level, concat);
+      int64 file_id = this.__handle_file__( filename, component, git_version, line_number, trace_level );
+      LogEntry e = new LogEntry( message_id, component, file_id, type, line_number, trace_level, concat );
       string[] tmp = {};
       string? v;
-      while (true)
+      while ( true )
       {
-        v = args.arg();
-        if (v == null)
+        v = args.arg( );
+        if ( v == null )
         {
           break;
         }
@@ -773,8 +771,8 @@ namespace DMLogger
     */
     private int64 __handle_file__( string filename, string component, string git_version, uint16 line_number, uint16 trace_level )
     {
-      int64? file_id = this.logged_files.lookup(filename);
-      if (file_id == null)
+      int64? file_id = this.logged_files.lookup( filename );
+      if ( file_id == null )
       {
         /* Dieses File bringt zum ersten mal eine Log-Meldung => File-Info Message mit GIT-Version generieren */
         this.__last_file_id__ ++;
@@ -794,39 +792,39 @@ namespace DMLogger
               fi.print_out( this.files, this.mdb, false );
             }
           }
-          catch (Error e)
+          catch ( Error e )
           {
-            GLib.critical("Error while logging message: " + e.message);
+            GLib.critical( "Error while logging message: " + e.message );
           }
         }
-        this.logged_files.insert(filename, file_id);
+        this.logged_files.insert( filename, file_id );
       }
       return (int64)file_id;
     }
 
-    public void stop()
+    public void stop( )
     {
       try
       {
         if ( this.threaded )
         {
-          LogEntry e = new LogEntry(0, "", 0, LOG_ENTRY_NONE, 0, 0, false);
+          LogEntry e = new LogEntry( 0, "", 0, LOG_ENTRY_NONE, 0, 0, false );
           e.exit_entry = true;
-          DMLogger.log_queue.push(e);
-          if (this.running != null)
+          DMLogger.log_queue.push( e );
+          if ( this.running != null )
           {
-            this.running.join();
+            this.running.join( );
           }
-          GLib.debug("Logger thread stopped");
+          GLib.debug( "Logger thread stopped" );
         }
         else
         {
           write_out_log_buffer( );
         }
       }
-      catch (Error e)
+      catch ( Error e )
       {
-        GLib.critical("Error while stopping logger: " + e.message);
+        GLib.critical( "Error while stopping logger: " + e.message );
       }
     }
 
@@ -842,7 +840,7 @@ namespace DMLogger
       {
         DMLogger.log_writer_fos = null;
       }
-      log_buffer = new uchar[BUFFER_SIZE];
+      log_buffer = new uchar[ BUFFER_SIZE ];
       log_buffer_index = 0;
 
       this.logged_files = new HashTable<string, int16?>( str_hash, str_equal );
@@ -855,6 +853,7 @@ namespace DMLogger
       if ( log_to_console )
       {
         this.mdb_file = mdb_file;
+        stdout.printf( "Logger read_mdb \n" );
         this.mdb = DMLogger.read_mdb( mdb_file, false );
         this.caption_mdb = DMLogger.read_caption_mdb( mdb_file, false );
         if ( this.mdb == null || this.caption_mdb == null )
@@ -876,19 +875,19 @@ namespace DMLogger
     uchar[] buffer;
     size_t buffer_index;
 
-    public LogReader(string logfile)
+    public LogReader( string logfile )
     {
       this.logfile = logfile;
       this.dis = OpenDMLib.IO.open( logfile, "rb" );
       if (dis == null)
       {
-        GLib.critical("Could not open Log-File for reading!");
+        GLib.critical( "Could not open Log-File for reading!" );
       }
       this.buffer = new uchar[BUFFER_SIZE];
       this.buffer_index = BUFFER_SIZE;
     }
 
-    public string read_string() throws Error
+    public string read_string( ) throws Error
     {
       int64 l = 0;
       this.get_from_buffer(&l, sizeof(int64));
@@ -898,13 +897,13 @@ namespace DMLogger
       return (string)tmp;
     }
 
-    public void get_from_buffer(void * data, size_t size)
+    public void get_from_buffer( void * data, size_t size )
     {
       try
       {
         size_t delta = 0;
         uchar[] tmp_buffer = new uchar[size];
-        if (this.buffer_index + size > BUFFER_SIZE)
+        if ( this.buffer_index + size > BUFFER_SIZE )
         {
           /* Das geht sich nicht mehr aus! */
           /* Muss ich stückeln (kommt vor, wenn sich die Daten noch zum Teil im alten Buffer stehen)? */
@@ -913,15 +912,15 @@ namespace DMLogger
           if ( delta > 0 && delta < size )
           {
             /* Das Delta ist leider nicht genau die größe => ich muss das Stück aus dem alten Buffer wegsichern ... */
-            Memory.copy(tmp_buffer, &this.buffer[this.buffer_index], delta);
+            Memory.copy( tmp_buffer, &this.buffer[this.buffer_index], delta );
           }
 
           /* Die nächsten Daten lesen */
           this.dis.read( this.buffer );
-          if (delta != 0)
+          if ( delta != 0 )
           {
             /* Stückeln is angesagt => den zweiten Teil aus dem neuen Buffer lesen */
-            Memory.copy(&tmp_buffer[delta], buffer, size - delta);
+            Memory.copy( &tmp_buffer[delta], buffer, size - delta );
             this.buffer_index = size - delta;
           }
           else
@@ -929,29 +928,29 @@ namespace DMLogger
             this.buffer_index = 0;
           }
         }
-        if (delta == 0 || delta == size)
+        if ( delta == 0 || delta == size )
         {
           /* Da war keine Stückelung */
-          Memory.copy(data, &this.buffer[this.buffer_index], size);
+          Memory.copy( data, &this.buffer[this.buffer_index], size );
           this.buffer_index += size;
         }
         else
         {
           /* Ich habe gestückelt */
-          Memory.copy(data, tmp_buffer, size);
+          Memory.copy( data, tmp_buffer, size );
         }
       }
-      catch (Error e)
+      catch ( Error e )
       {
-        error("Error while reading from buffer! %s", e.message);
+        error( "Error while reading from buffer! %s", e.message );
       }
     }
 
-    public LogEntry? next_entry()
+    public LogEntry? next_entry( )
     {
-      if (this.dis == null)
+      if ( this.dis == null )
       {
-        GLib.critical("No Log-File opened!");
+        GLib.critical( "No Log-File opened!" );
         return null;
       }
       try
@@ -1009,7 +1008,7 @@ namespace DMLogger
         e.record_type = record_type;
         return e;
       }
-      catch (Error err)
+      catch ( Error err )
       {
         /* EOF Reached */
         return null;
