@@ -831,11 +831,18 @@ namespace DMLogger
 
     public Logger( string? logfile )
     {
-      DMLogger.log_queue = new AsyncQueue<LogEntry>();
+      DMLogger.log_queue = new AsyncQueue<LogEntry>( );
       this.logfile = logfile;
       if ( logfile != null )
       {
-        DMLogger.log_writer_fos = OpenDMLib.IO.open( logfile, "wb" );
+        try
+        {
+          DMLogger.log_writer_fos = OpenDMLib.IO.open( logfile, "wb" );
+        }
+        catch ( OpenDMLibIOErrors e )
+        {
+          stderr.printf( "Could not open specified log file \"%s\" for writing! %s\n", logfile, e.message );
+        }
       }
       else
       {
