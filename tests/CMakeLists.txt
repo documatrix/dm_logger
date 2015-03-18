@@ -7,12 +7,9 @@ set (DOLLAR "$")
 
 configure_file (${CMAKE_SOURCE_DIR}/src/Config.vala.cmake ${CMAKE_BINARY_DIR}/src/Config.vala)
 add_definitions(-DGETTEXT_PACKAGE=\"${GETTEXT_PACKAGE}\")
-add_definitions (${DEPS_CFLAGS})
 include_directories( ${CMAKE_SOURCE_DIR}/src )
-link_libraries ( ${DEPS_LIBRARIES} )
-link_libraries ( ${DM_LOGGER_NAME} )
-link_directories ( ${DEPS_LIBRARY_DIRS} )
 link_directories ( ${CMAKE_SOURCE_DIR}/src )
+link_libraries ( ${DM_LOGGER_NAME} )
 find_package (Vala REQUIRED)
 include( UseVala )
 

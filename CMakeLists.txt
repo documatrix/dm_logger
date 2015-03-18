@@ -34,6 +34,17 @@ endif()
 set (MODULES_TO_CHECK glib-2.0 dmtestlib-1.0 gobject-2.0 gio-2.0 gthread-2.0 zlib open_dmlib-1.0)
 pkg_check_modules(DEPS REQUIRED ${MODULES_TO_CHECK})
 
+set( LIBS )
+foreach( PKGLIB ${DEPS_LIBRARIES} )
+  find_library( _LIB_${PKGLIB} ${PKGLIB} PATHS ${DEPS_LIBRARY_DIRS})
+  list( APPEND LIBS ${_LIB_${PKGLIB}} )
+endforeach( PKGLIB )
+
+add_definitions (${DEPS_CFLAGS})
+link_directories ( ${DEPS_LIBRARY_DIRS} )
+link_libraries ( ${LIBS} )
+
+
 set( VAPIDIRS_ARGS "" )
 if( NOT ${VAPIDIRS} STREQUAL "" )
   string( REPLACE ":" ";" VAPIDIRS_LIST ${VAPIDIRS} )
