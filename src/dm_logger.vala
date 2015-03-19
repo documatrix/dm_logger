@@ -251,10 +251,8 @@ namespace DMLogger
 
       for (int i = 0; i < message.char_count(); i++)
       {
-        //debug("i: %d, char: %c, len: %ld", i, (char)message[i], message.length);
         if (message.get_char(message.index_of_nth_char(i)) == '$' && (i + 3 <= message.char_count() - 1))
         {
-          //debug("dollar gefunden!");
           if (message.get_char(message.index_of_nth_char(i + 1)) == '{')
           {
             int j = 1;
@@ -280,7 +278,6 @@ namespace DMLogger
             }
             if (done == true)
             {
-              //debug("Done! Content is %s", cont.str);
               if (int.parse(cont.str) - 1 >= parameters.length)
               {
                 stderr.printf("Parameter %d referenced, but there are only %d parameters!\n", int.parse(cont.str), parameters.length);
@@ -288,7 +285,6 @@ namespace DMLogger
               }
               else
               {
-                //debug("val: %s", parameters[cont.str.to_int() - 1]);
                 new_message.append(parameters[int.parse(cont.str) - 1]);
               }
             }
@@ -672,7 +668,6 @@ namespace DMLogger
           GLib.critical( "Error while logging message: " + e.message );
         }
       }
-      GLib.debug( "Exiting logger thread" );
       //Thread.self().exit(null);
       return null;
     }
@@ -816,7 +811,6 @@ namespace DMLogger
           {
             this.running.join( );
           }
-          GLib.debug( "Logger thread stopped" );
         }
         else
         {
