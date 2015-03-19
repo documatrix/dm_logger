@@ -58,11 +58,11 @@ if (-e $mdb)
     {
       next;
     }
-    my @tokens = split(/\x01/, $mdb_line);
+    my @tokens = split( /\x01/, $mdb_line );
     if ( $#tokens != 2 )
     {
-      warn "Message database $mdb has wrong structure! Ignoring it!";
-      last;
+      warn "Message database $mdb has wrong structure!";
+      warn "Invlid line is $mdb_line";
     }
     $messages{ $tokens[ 0 ] }->{ $tokens[ 2 ] } = $tokens[ 1 ];
     if ( $debug )
@@ -99,8 +99,8 @@ foreach my $merge_mdb ( @merge_mdbs )
     my @tokens = split( /\x01/, $line );
     if ( $#tokens != 2 )
     {
-      warn "Message database $mdb has wrong structure! Ignoring it!";
-      last;
+      warn "Message database $mdb has wrong structure!";
+      warn "Wrong line: $line";
     }
     $messages{ $tokens[ 0 ] }->{ $tokens[ 2 ] } = $tokens[ 1 ];
     if ( $debug )
