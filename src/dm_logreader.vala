@@ -17,8 +17,7 @@ using OpenDMLib;
 using DMLogger;
 
 public const string product_name = "dm_logreader";
-public const string product_version = "0.1";
-
+public const string product_version = "1.0";
 
 /*
  * Wichtige Variablen für das Parsen der Command-Line
@@ -28,70 +27,69 @@ static bool print_verbose = false;
 static string log_file = null;
 static string mdb_file = null;
 const OptionEntry[] entries = {
-  {"mdbfile", 'm', 0, OptionArg.STRING, ref mdb_file, "Filename of the Message-Database-File", "Message-Database-File"},
-  {"version", 'v', 0, OptionArg.NONE, ref print_version, "Print Version", null},
-  {"verbose", 'V', 0, OptionArg.NONE, ref print_verbose, "Print Verbose output", null},
-  {"logfile", 'L', 0, OptionArg.STRING, ref log_file, "Filename of the Log-File", "Log-File"},
-  {null}
+  { "mdbfile", 'm', 0, OptionArg.STRING, ref mdb_file, "Filename of the Message-Database-File", "Message-Database-File" },
+  { "version", 'v', 0, OptionArg.NONE, ref print_version, "Print Version", null },
+  { "verbose", 'V', 0, OptionArg.NONE, ref print_verbose, "Print Verbose output", null },
+  { "logfile", 'L', 0, OptionArg.STRING, ref log_file, "Filename of the Log-File", "Log-File" },
+  { null }
 };
 
 
 /*
  * Einstiegspunkt
  */
-
-public int main(string[] args)
+public int main( string[] args )
 {
   /*
    * Lesen der Command-Line Parameter
    */
   try
   {
-    OptionContext context = new OptionContext("- " + product_name + " Version " + product_version);
-    context.set_help_enabled(true);
-    context.add_main_entries(entries, "test");
-    context.parse(ref args);
+    OptionContext context = new OptionContext( "- " + product_name + " Version " + product_version );
+    context.set_help_enabled( true );
+    context.add_main_entries( entries, "test" );
+    context.parse( ref args );
 
-    if (print_version == true)
+    if ( print_version == true )
     {
-      stdout.printf("%s, Version %s\n", product_name, product_version);
+      stdout.printf( "%s, Version %s\n", product_name, product_version );
       return 0;
     }
   }
-  catch (Error e)
+  catch ( Error e )
   {
-    critical("Error while parsing Options: " + e.message);
+    critical( "Error while parsing Options: " + e.message );
     return 1;
   }
 
-  if (log_file == null)
+  if ( log_file == null )
   {
-    critical("No log-file given!");
+    critical( "No log-file given!" );
   }
-  if (mdb_file == null)
+  if ( mdb_file == null )
   {
-    critical("No mdb-file given!");
+    critical( "No mdb-file given!" );
   }
   
-  debug("Starting %s, Version %s\n", product_name, product_version);
+  debug( "Starting %s, Version %s\n", product_name, product_version );
   DMLogger.LogReader lr = new DMLogger.LogReader( log_file );
   
   /* MDB lesen */
-  HashTable<string,HashTable<int64?,string>?>? mdb = DMLogger.read_mdb(mdb_file, print_verbose);
-  HashTable<int64?,string>? files = new HashTable<int64?,string>(int_hash, int_equal);
+  HashTable<string,HashTable<int64?,string>?>? mdb = DMLogger.read_mdb( mdb_file, print_verbose );
+  HashTable<int64?,string>? files = new HashTable<int64?,string>( int_hash, int_equal );
 
  
-  while(true)
+  while( true )
   {
-    LogEntry le = lr.next_entry();
-    if (le == null)
+    LogEntry le = lr.next_entry( );
+    if ( le == null )
     {
-      message("EOF reached");
+      message( "EOF reached" );
       break;
     }
-    le.print_out(files, mdb, print_verbose);
+    le.print_out( files, mdb, print_verbose );
   
   }
-  debug("Terminating %s, Version %s", product_name, product_version);
+  debug( "Terminating %s, Version %s", product_name, product_version );
   return 0;
 }

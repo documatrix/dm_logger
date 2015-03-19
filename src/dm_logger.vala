@@ -24,6 +24,7 @@ namespace DMLogger
   public FileStream? log_writer_fos;
   uchar[] log_buffer;
   size_t log_buffer_index;
+
   /* Wenn im Buffer noch was steht, wird es hier raus geschrieben */
   public void write_out_log_buffer( )
   {
@@ -33,6 +34,7 @@ namespace DMLogger
       log_buffer_index = 0;
     }
   }
+
   public void add_to_log_buffer( void * data, size_t size ) throws Error
   {
     try
@@ -46,11 +48,16 @@ namespace DMLogger
       Memory.copy( &log_buffer[ log_buffer_index ], data, size );
       log_buffer_index += size;
     }
-    catch (Error e)
+    catch ( Error e )
     {
       error( "Error writing to logfile: %s", e.message );
     }
   }
+
+  /**
+   * This method adds a string to the log_buffer
+   * @param s The string you want to add to det log_buffer
+   */
   public void write_log_string( string s ) throws Error
   {
     char[] tmp = s.to_utf8( );
@@ -59,6 +66,12 @@ namespace DMLogger
     add_to_log_buffer( tmp, (size_t)l );
   }
 
+  /**
+   * This method can be used to read an mdb file which uses the components and message ids.
+   * @param mdb_file The filename which should be read.
+   * @param print_verbose This flag specifies if the reading process should generate some log messages...
+   * @return A hashtable with the components as keys and another hashtable ( with message ids as keys and texts as values ) as value, or null if the mdb could not be read successfully.
+   */
   public static HashTable<string,HashTable<int64?,string>?>? read_mdb( string? mdb_file, bool print_verbose = false )
   {
     if ( mdb_file == null )
@@ -125,7 +138,7 @@ namespace DMLogger
    * This method can be used to read an mdb file which uses caption names instead of message ids.
    * @param mdb_file A filename which should be read.
    * @param print_verbose This flag specifies if the reading process should generate some log messages...
-   * @return A hashtable with captions as keys and texts as values or null if the mdb could not be read successfully.
+   * @return A hashtable with the components as keys and another hashtable ( with captions as keys and texts as values ) as value, or null if the mdb could not be read successfully.
    */
   public static HashTable<string,HashTable<string?,string>?>? read_caption_mdb( string? mdb_file, bool print_verbose = false )
   {
@@ -206,10 +219,16 @@ namespace DMLogger
     public uint16 trace_level;
     public uint16 line;
 
-   /**
-    * The LogEntry construktor
-    * params will be added soon
-    */
+    /**
+     * The LogEntry construktor
+     * @param message_id The ID of the LogEntry.
+     * @param component The component who created the LogEntry.
+     * @param file_id This flag specifies the file_id.
+     * @param type This flag specifies the coloring of the LogEntry.
+     * @param line The line in which the error occured.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @param concat Specifies if the LogEntriy is concatenated.
+     */
     public LogEntry( int64 message_id, string component, int64 file_id, uint16 type, uint16 line, uint16 trace_level, bool concat )
     {
       this.exit_entry = false;
@@ -234,10 +253,16 @@ namespace DMLogger
       this.parameters = {};
     }
 
-   /**
-    * The LogEntry file_info construktor
-    * params will be added soon
-    */
+    /**
+     * The LogEntry file_info construktor
+     * @param filename The ID of the LogEntry.
+     * @param component The component who created the LogEntry.
+     * @param git_version The git Version.
+     * @param file_id This flag specifies the file_id.
+     * @param line The line in which the error occured.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @param concat Specifies if the LogEntriy is concatenated.
+     */
     public LogEntry.file_info( string filename, string component, string git_version, int64 file_id, uint16 line, uint16 trace_level, bool concat )
     {
       this( 0, component, file_id, LOG_ENTRY_NONE, line, trace_level, concat );
@@ -249,23 +274,23 @@ namespace DMLogger
     {
       StringBuilder new_message = new StringBuilder( );
 
-      for (int i = 0; i < message.char_count(); i++)
-      {
-        if (message.get_char(message.index_of_nth_char(i)) == '$' && (i + 3 <= message.char_count() - 1))
+      for ( int i = 0; i < message.char_count(); i++ )
+      {        
+        if ( message.get_char( message.index_of_nth_char( i ) ) == '$' && ( i + 3 <= message.char_count( ) - 1) )
         {
-          if (message.get_char(message.index_of_nth_char(i + 1)) == '{')
+          if ( message.get_char( message.index_of_nth_char( i + 1 ) ) == '{' )
           {
             int j = 1;
             bool done = false;
-            StringBuilder cont = new StringBuilder();
-            while (true)
+            StringBuilder cont = new StringBuilder( );
+            while ( true )
             {
               j ++;
-              if (i + j == message.char_count())
+              if ( i + j == message.char_count( ) )
               {
                 break;
               }
-              else if (message.get_char(message.index_of_nth_char(i + j)) == '}')
+              else if ( message.get_char( message.index_of_nth_char( i + j) ) == '}' )
               {
                 done = true;
                 i = i + j;
@@ -273,38 +298,41 @@ namespace DMLogger
               }
               else
               {
-                cont.append_unichar(message.get_char(message.index_of_nth_char(i + j)));
+                cont.append_unichar( message.get_char( message.index_of_nth_char( i + j ) ) );
               }
             }
-            if (done == true)
+            if ( done == true )
             {
-              if (int.parse(cont.str) - 1 >= parameters.length)
+              if ( int.parse( cont.str ) - 1 >= parameters.length )
               {
-                stderr.printf("Parameter %d referenced, but there are only %d parameters!\n", int.parse(cont.str), parameters.length);
-                stderr.printf("Message: %s\n", message);
+                stderr.printf( "Parameter %d referenced, but there are only %d parameters!\n", int.parse( cont.str ), parameters.length );
+                stderr.printf( "Message: %s\n", message );
               }
               else
               {
-                new_message.append(parameters[int.parse(cont.str) - 1]);
+                new_message.append( parameters[ int.parse( cont.str ) - 1 ] );
               }
             }
           }
           else
           {
-            new_message.append_unichar(message.get_char(message.index_of_nth_char(i)));
+            new_message.append_unichar( message.get_char( message.index_of_nth_char( i ) ) );
           }
         }
         else
         {
-          new_message.append_unichar(message.get_char(message.index_of_nth_char(i)));
+          new_message.append_unichar( message.get_char( message.index_of_nth_char( i ) ) );
         }
       }
       return new_message.str;
     }
 
-   /**
-    * Valadoc folgt...
-    */
+    /**
+     * This method can be used to read an mdb file which uses caption names instead of message ids.
+     * @param files A hashtable with file ids as keys and file names as values
+     * @param _mdb A hashtable with the components as keys and another hashtable ( with message ids as keys and texts as values ) as value.
+     * @param print_verbose Sets if the output should be verbose.
+     */
     public void print_out( HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose = true )
     {
       unowned HashTable<int64?,string>? mdb = _mdb.lookup( this.component );
@@ -348,8 +376,8 @@ namespace DMLogger
             }
             else
             {
-              stdout.printf("\tMessage: %s\n", message);
-              stdout.printf("\tMessage Parsed: %s\n", this.parse_message( message, parameters ) );
+              stdout.printf( "\tMessage: %s\n", message );
+              stdout.printf( "\tMessage Parsed: %s\n", this.parse_message( message, parameters ) );
             }
           }
           else if ( mdb == null )
@@ -442,7 +470,7 @@ namespace DMLogger
       add_to_log_buffer( &this.file_id, sizeof( int64 ) );
       add_to_log_buffer( &this.line, sizeof( uint16 ) );
       add_to_log_buffer( &this.type, sizeof( uint16 ) );
-      if (this.concat == true)
+      if ( this.concat == true )
       {
         uint8 tmp = 1;
         add_to_log_buffer( &tmp, sizeof( uint8 ) );
@@ -459,7 +487,7 @@ namespace DMLogger
 
       int16 tmp = (int16)this.parameters.length;
       add_to_log_buffer( &tmp, sizeof( int16 ) );
-      for (int i = 0; i < this.parameters.length; i++)
+      for ( int i = 0; i < this.parameters.length; i++ )
       {
         write_log_string( this.parameters[ i ] );
       }
@@ -605,12 +633,12 @@ namespace DMLogger
      */
     public HashTable<string,HashTable<int64?,string>?>? mdb;
 
-   /**
-    * This hashtable contains the filenames of the files which
-    * already did a log output.
-    * The key is a auto-generated file id and is used when printing the log message
-    * to the log-file.
-    */
+    /**
+     * This hashtable contains the filenames of the files which
+     * already did a log output.
+     * The key is a auto-generated file id and is used when printing the log message
+     * to the log-file.
+     */
     public HashTable<int64?,string>? files;
 
    /**
@@ -631,7 +659,7 @@ namespace DMLogger
     /*
      * Führt Logging Aktivitäten aus
      */
-    public void* run()
+    public void* run( )
     {
       while( true )
       {
@@ -672,6 +700,9 @@ namespace DMLogger
       return null;
     }
 
+    /**
+     * Logger will be started in an new thread
+     */
     public void start_threaded( )
     {
       try
@@ -682,45 +713,100 @@ namespace DMLogger
         this.running = Thread.create<void*>( this.run, true );
 #endif
       }
-      catch (Error e)
+      catch ( Error e )
       {
-        GLib.critical("Error while creating thread for logger: " + e.message);
+        GLib.critical( "Error while creating thread for logger: " + e.message );
       }
     }
 
-   /**
-    * Valadoc folgt
-    */
+    /**
+     * Logger won't be started in a new thread
+     */
     public void start_not_threaded( )
     {
       this.threaded = false;
     }
 
+    /**
+     * A new debug LogEntry will be created.
+     * @param component The current component.
+     * @param filename The ID of the LogEntry.
+     * @param line_number The line in which the error occured.
+     * @param git_version The git Version.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @param concat Specifies if the LogEntriy is concatenated.
+     * @param message_id This flag specifies the message_id.
+     * @param ... A list of strings which will be used to replace the ${...} patterns.
+     */
     public void debug( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
       va_list l = va_list( );
       this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, component, l );
     }
 
+    /**
+     * A new info LogEntry will be created.
+     * @param component The current component.
+     * @param filename The ID of the LogEntry.
+     * @param line_number The line in which the error occured.
+     * @param git_version The git Version.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @param concat Specifies if the LogEntriy is concatenated.
+     * @param message_id This flag specifies the message_id.
+     * @param ... A list of strings which will be used to replace the ${...} patterns.
+     */
     public void info( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
-      va_list l = va_list();
+      va_list l = va_list( );
       this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, component, l );
     }
 
+    /**
+     * A new warning LogEntry will be created.
+     * @param component The current component.
+     * @param filename The ID of the LogEntry.
+     * @param line_number The line in which the error occured.
+     * @param git_version The git Version.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @param concat Specifies if the LogEntriy is concatenated.
+     * @param message_id This flag specifies the message_id.
+     * @param ... A list of strings which will be used to replace the ${...} patterns.
+     */
     public void warning( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
-      va_list l = va_list();
+      va_list l = va_list( );
       this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, component, l );
     }
 
+    /**
+     * A new error LogEntry will be created.
+     * @param component The current component.
+     * @param filename The ID of the LogEntry.
+     * @param line_number The line in which the error occured.
+     * @param git_version The git Version.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @param concat Specifies if the LogEntriy is concatenated.
+     * @param message_id This flag specifies the message_id.
+     * @param ... A list of strings which will be used to replace the ${...} patterns.
+     */
     public void error( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
-      va_list l = va_list();
+      va_list l = va_list( );
       this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, component, l );
     }
 
-
+    /**
+     * Creates a new LogEntry
+     * @param filename The ID of the LogEntry.
+     * @param line_number The line in which the error occured.
+     * @param git_version The git Version.
+     * @param type This flag specifies the coloring of the LogEntry.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @param concat Specifies if the LogEntriy is concatenated.
+     * @param message_id This flag specifies the message_id.
+     * @param component The current component.
+     * @param va_list args A list of strings params.
+     */
     private void __generate_message__( string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, va_list args )
     {
       int64 file_id = this.__handle_file__( filename, component, git_version, line_number, trace_level );
@@ -762,9 +848,16 @@ namespace DMLogger
         }
       }
     }
-   /**
-    * Valadoc folgt
-    */
+
+    /**
+     * This method gives you the file_id and generates the file_info message if it is the first LogEntry
+     * @param filename The ID of the LogEntry.
+     * @param component The current component.
+     * @param git_version The git Version.
+     * @param line_number The line in which the error occured.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @return The file_id.
+     */
     private int64 __handle_file__( string filename, string component, string git_version, uint16 line_number, uint16 trace_level )
     {
       int64? file_id = this.logged_files.lookup( filename );
@@ -798,6 +891,9 @@ namespace DMLogger
       return (int64)file_id;
     }
 
+    /**
+     * Stops the Logger
+     */
     public void stop( )
     {
       try
@@ -823,6 +919,10 @@ namespace DMLogger
       }
     }
 
+    /**
+     * The Logger's constructor
+     * @param logfile The path of the logfile.
+     */
     public Logger( string? logfile )
     {
       DMLogger.log_queue = new AsyncQueue<LogEntry>( );
@@ -850,6 +950,11 @@ namespace DMLogger
       this.log_to_console = false;
     }
 
+    /**
+     * Sets Logger config
+     * @param log_to_console Sets if the Logger should print the messages on the console.
+     * @param mdb_file The path of the mdb file.
+     */
     public void set_config( bool log_to_console, string? mdb_file )
     {
       if ( log_to_console )
@@ -880,21 +985,21 @@ namespace DMLogger
     {
       this.logfile = logfile;
       this.dis = OpenDMLib.IO.open( logfile, "rb" );
-      if (dis == null)
+      if ( dis == null )
       {
         GLib.critical( "Could not open Log-File for reading!" );
       }
-      this.buffer = new uchar[BUFFER_SIZE];
+      this.buffer = new uchar[ BUFFER_SIZE ];
       this.buffer_index = BUFFER_SIZE;
     }
 
     public string read_string( ) throws Error
     {
       int64 l = 0;
-      this.get_from_buffer(&l, sizeof(int64));
-      char[] tmp = new char[l + 1];
-      this.get_from_buffer(tmp, (size_t)l);
-      tmp[l] = 0;
+      this.get_from_buffer( &l, sizeof( int64 ) );
+      char[] tmp = new char[ l + 1 ];
+      this.get_from_buffer( tmp, (size_t)l );
+      tmp[ l ] = 0;
       return (string)tmp;
     }
 
@@ -903,7 +1008,7 @@ namespace DMLogger
       try
       {
         size_t delta = 0;
-        uchar[] tmp_buffer = new uchar[size];
+        uchar[] tmp_buffer = new uchar[ size ];
         if ( this.buffer_index + size > BUFFER_SIZE )
         {
           /* Das geht sich nicht mehr aus! */
@@ -913,7 +1018,7 @@ namespace DMLogger
           if ( delta > 0 && delta < size )
           {
             /* Das Delta ist leider nicht genau die größe => ich muss das Stück aus dem alten Buffer wegsichern ... */
-            Memory.copy( tmp_buffer, &this.buffer[this.buffer_index], delta );
+            Memory.copy( tmp_buffer, &this.buffer[ this.buffer_index ], delta );
           }
 
           /* Die nächsten Daten lesen */
@@ -932,7 +1037,7 @@ namespace DMLogger
         if ( delta == 0 || delta == size )
         {
           /* Da war keine Stückelung */
-          Memory.copy( data, &this.buffer[this.buffer_index], size );
+          Memory.copy( data, &this.buffer[ this.buffer_index ], size );
           this.buffer_index += size;
         }
         else
@@ -961,7 +1066,7 @@ namespace DMLogger
         this.get_from_buffer( &record_type, sizeof(uint16) );
         if ( record_type == LOG_ENTRY_RECORD_TYPE_EOF )
         {
-          stdout.printf("EOF of logfile reached\n");
+          stdout.printf( "EOF of logfile reached\n" );
           return null;
         }
         uint16 pid = 0;
@@ -997,11 +1102,11 @@ namespace DMLogger
         int16 parameter_count = 0;
         this.get_from_buffer( &parameter_count, sizeof( int16 ) );
         string[] tmp = {};
-        for (int p = 0; p < parameter_count; p++)
+        for ( int p = 0; p < parameter_count; p++ )
         {
           tmp += this.read_string( );
         }
-        e = new LogEntry(message_id, component, file_id, type, line, trace_level, concat_b);
+        e = new LogEntry( message_id, component, file_id, type, line, trace_level, concat_b );
         e.parameters = tmp;
         e.pid = pid;
         e.tid = tid;
