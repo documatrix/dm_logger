@@ -833,7 +833,7 @@ namespace DMLogger
         {
           DMLogger.log_writer_fos = OpenDMLib.IO.open( logfile, "wb" );
         }
-        catch ( OpenDMLibIOErrors e )
+        catch ( OpenDMLib.IO.OpenDMLibIOErrors e )
         {
           stderr.printf( "Could not open specified log file \"%s\" for writing! %s\n", logfile, e.message );
         }
