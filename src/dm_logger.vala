@@ -275,7 +275,7 @@ namespace DMLogger
       StringBuilder new_message = new StringBuilder( );
 
       for ( int i = 0; i < message.char_count(); i++ )
-      {        
+      {
         if ( message.get_char( message.index_of_nth_char( i ) ) == '$' && ( i + 3 <= message.char_count( ) - 1) )
         {
           if ( message.get_char( message.index_of_nth_char( i + 1 ) ) == '{' )
