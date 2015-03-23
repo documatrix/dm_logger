@@ -418,7 +418,7 @@ namespace DMLogger
           DMDateTime dt = new DMDateTime.from_unix_local( (int64)( this.tstamp / (int64)1000000 ) );
           stdout.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
 
-          if ( Logger.debug_mode == true )
+          if ( log.debug_mode == true )
           {
             unowned string? _filename;
             string? filename = null;
@@ -632,7 +632,7 @@ namespace DMLogger
     /**
      * Sets if the filename and line sould be printed
      */
-    public bool debug_mode;
+    public bool debug_mode = false;
 
     public bool log_to_console;
     public string? mdb_file;
