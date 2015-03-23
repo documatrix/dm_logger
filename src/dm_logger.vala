@@ -417,17 +417,22 @@ namespace DMLogger
           }
           DMDateTime dt = new DMDateTime.from_unix_local( (int64)( this.tstamp / (int64)1000000 ) );
           stdout.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
-          unowned string? _filename;
-          string? filename = null;
-          if ( ( _filename = files.lookup( this.file_id ) ) == null )
+
+          if ( Logger.debug_mode == true )
           {
-            filename = "<unknown file - file-id: " + this.file_id.to_string( ) + ">";
+            unowned string? _filename;
+            string? filename = null;
+            if ( ( _filename = files.lookup( this.file_id ) ) == null )
+            {
+              filename = "<unknown file - file-id: " + this.file_id.to_string( ) + ">";
+            }
+            else
+            {
+              filename = _filename;
+            }
+            stdout.printf( "(%s:%u) ", filename, this.line );
           }
-          else
-          {
-            filename = _filename;
-          }
-          stdout.printf( "(%s:%u) ", filename, this.line );
+
           unowned string? message = mdb.lookup( this.message_id );
           if ( message == null )
           {
@@ -623,6 +628,12 @@ namespace DMLogger
     string logfile;
     int64 __last_file_id__;
     HashTable<string,int64?> logged_files;
+
+    /**
+     * Sets if the filename and line sould be printed
+     */
+    public bool debug_mode;
+
     public bool log_to_console;
     public string? mdb_file;
 
@@ -955,7 +966,7 @@ namespace DMLogger
      * @param log_to_console Sets if the Logger should print the messages on the console.
      * @param mdb_file The path of the mdb file.
      */
-    public void set_config( bool log_to_console, string? mdb_file )
+    public void set_config( bool log_to_console, string? mdb_file, bool debug_mode )
     {
       if ( log_to_console )
       {
@@ -969,6 +980,7 @@ namespace DMLogger
         }
         this.files = new HashTable<int16?,string>( int_hash, int_equal );
         this.log_to_console = log_to_console;
+        this.debug_mode = debug_mode;
       }
     }
   }
