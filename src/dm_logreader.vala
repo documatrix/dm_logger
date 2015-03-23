@@ -26,14 +26,19 @@ static bool print_version = false;
 static bool print_verbose = false;
 static string log_file = null;
 static string mdb_file = null;
+/*
+ * Dieses Flag wird verwendet um Filename und Linenumber ins log zu schreiben
+ */
+static bool debug_mode = false;
+
 const OptionEntry[] entries = {
   { "mdbfile", 'm', 0, OptionArg.STRING, ref mdb_file, "Filename of the Message-Database-File", "Message-Database-File" },
   { "version", 'v', 0, OptionArg.NONE, ref print_version, "Print Version", null },
   { "verbose", 'V', 0, OptionArg.NONE, ref print_verbose, "Print Verbose output", null },
   { "logfile", 'L', 0, OptionArg.STRING, ref log_file, "Filename of the Log-File", "Log-File" },
+  { "debug", 'D', 0, OptionArg.NONE, ref debug_mode, "Turn on the debug flag (default off)", null },
   { null }
 };
-
 
 /*
  * Einstiegspunkt
@@ -70,15 +75,14 @@ public int main( string[] args )
   {
     critical( "No mdb-file given!" );
   }
-  
+
   debug( "Starting %s, Version %s\n", product_name, product_version );
   DMLogger.LogReader lr = new DMLogger.LogReader( log_file );
-  
+
   /* MDB lesen */
   HashTable<string,HashTable<int64?,string>?>? mdb = DMLogger.read_mdb( mdb_file, print_verbose );
   HashTable<int64?,string>? files = new HashTable<int64?,string>( int_hash, int_equal );
 
- 
   while( true )
   {
     LogEntry le = lr.next_entry( );
@@ -87,8 +91,8 @@ public int main( string[] args )
       message( "EOF reached" );
       break;
     }
-    le.print_out( files, mdb, print_verbose );
-  
+    le.print_out( files, mdb, print_verbose, debug_mode );
+
   }
   debug( "Terminating %s, Version %s", product_name, product_version );
   return 0;
