@@ -21,6 +21,8 @@ namespace DMLogger
   /* Ab diesem Trace-Level soll geloggt werden */
   public int log_trace_level = 0;
 
+  public bool debug_mode = false;
+
   public FileStream? log_writer_fos;
   uchar[] log_buffer;
   size_t log_buffer_index;
@@ -418,7 +420,7 @@ namespace DMLogger
           DMDateTime dt = new DMDateTime.from_unix_local( (int64)( this.tstamp / (int64)1000000 ) );
           stdout.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
 
-          if ( log.debug_mode == true )
+          if ( DMLogger.debug_mode == true )
           {
             unowned string? _filename;
             string? filename = null;
@@ -628,11 +630,6 @@ namespace DMLogger
     string logfile;
     int64 __last_file_id__;
     HashTable<string,int64?> logged_files;
-
-    /**
-     * Sets if the filename and line sould be printed
-     */
-    public bool debug_mode = false;
 
     public bool log_to_console;
     public string? mdb_file;
@@ -980,7 +977,7 @@ namespace DMLogger
         }
         this.files = new HashTable<int16?,string>( int_hash, int_equal );
         this.log_to_console = log_to_console;
-        this.debug_mode = debug_mode;
+        DMLogger.debug_mode = debug_mode;
       }
     }
   }
