@@ -67,7 +67,7 @@ if (-e $mdb)
     $messages{ $tokens[ 0 ] }->{ $tokens[ 2 ] } = $tokens[ 1 ];
     if ( $debug )
     {
-      print "$tokens[ 0 ]: $tokens[ 2 ] = $tokens[ 1 ]\n";
+      #print "$tokens[ 0 ]: $tokens[ 2 ] = $tokens[ 1 ]\n";
     }
     if ( $message_id < $tokens[ 1 ] )
     {
@@ -105,7 +105,7 @@ foreach my $merge_mdb ( @merge_mdbs )
     $messages{ $tokens[ 0 ] }->{ $tokens[ 2 ] } = $tokens[ 1 ];
     if ( $debug )
     {
-      print "$tokens[ 0 ]: $tokens[ 2 ] = $tokens[ 1 ]\n";
+      #print "$tokens[ 0 ]: $tokens[ 2 ] = $tokens[ 1 ]\n";
     }
   }
   close MRG;

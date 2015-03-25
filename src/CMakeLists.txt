@@ -58,12 +58,19 @@ add_executable(
 target_link_libraries( dm_logreader dm_logger-1.0 )
 
 # CREATE PKGCONFIG FILES
+if(NOT DEFINED CMAKE_INSTALL_BINDIR)
+  set(CMAKE_INSTALL_BINDIR bin)
+endif(NOT DEFINED CMAKE_INSTALL_BINDIR)
 if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR lib)
 endif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
 set(prefix       ${CMAKE_INSTALL_PREFIX})
 set(exec_prefix ${CMAKE_INSTALL_PREFIX})
-set(libdir       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+  set(libdir       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+else()
+  set(libdir       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+endif()
 set(includedir  ${CMAKE_INSTALL_PREFIX}/include)
 set(LIBS         "")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libdm_logger.pc.in
