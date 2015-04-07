@@ -967,7 +967,7 @@ namespace DMLogger
      * @param log_to_console Sets if the Logger should print the messages on the console.
      * @param mdb_file The path of the mdb file.
      */
-    public void set_config( bool log_to_console, string? mdb_file, bool debug_mode )
+    public void set_config( bool log_to_console, string? mdb_file, bool debug_mode = false )
     {
       if ( log_to_console )
       {
