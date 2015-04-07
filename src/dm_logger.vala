@@ -37,21 +37,14 @@ namespace DMLogger
 
   public void add_to_log_buffer( void * data, size_t size ) throws Error
   {
-    try
+    if ( log_buffer_index + size > BUFFER_SIZE )
     {
-      if ( log_buffer_index + size > BUFFER_SIZE )
-      {
-        /* Das geht sich nicht mehr aus! */
-        log_writer_fos.write( log_buffer[ 0:log_buffer_index ] );
-        log_buffer_index = 0;
-      }
-      Memory.copy( &log_buffer[ log_buffer_index ], data, size );
-      log_buffer_index += size;
+      /* Das geht sich nicht mehr aus! */
+      log_writer_fos.write( log_buffer[ 0:log_buffer_index ] );
+      log_buffer_index = 0;
     }
-    catch ( Error e )
-    {
-      error( "Error writing to logfile: %s", e.message );
-    }
+    Memory.copy( &log_buffer[ log_buffer_index ], data, size );
+    log_buffer_index += size;
   }
 
   /**
@@ -94,41 +87,34 @@ namespace DMLogger
     HashTable<string,HashTable<int64?,string>?>? mdb = new HashTable<string,HashTable<int64?,string>?>( str_hash, str_equal );
     HashTable<int64?,string>? mdb_mini;
 
-    try
+    while ( true )
     {
-      while ( true )
+      string? line = min.read_line( );
+      if ( line == null )
       {
-        string? line = min.read_line( );
-        if ( line == null )
+        if ( print_verbose )
         {
-          if ( print_verbose )
-          {
-            stdout.printf( "EOF of mdb reached\n" );
-          }
-          break;
+          stdout.printf( "EOF of mdb reached\n" );
         }
-
-        string[] tokens = ( (!)line ).split( "\x01" );
-        if ( print_verbose == true )
-        {
-          stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
-        }
-
-        if ( mdb.lookup( tokens[ 0 ] ) != null )
-        {
-          mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
-        }
-        else
-        {
-          mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
-          mdb_mini.insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
-          mdb.insert( tokens[ 0 ], mdb_mini );
-        }
+        break;
       }
-    }
-    catch ( Error e )
-    {
-      stderr.printf( "An error occured while parsing the message database %s! %s\n", (!)mdb_file, e.message );
+
+      string[] tokens = ( (!)line ).split( "\x01" );
+      if ( print_verbose == true )
+      {
+        stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
+      }
+
+      if ( mdb.lookup( tokens[ 0 ] ) != null )
+      {
+        mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
+      }
+      else
+      {
+        mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
+        mdb_mini.insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
+        mdb.insert( tokens[ 0 ], mdb_mini );
+      }
     }
 
     return mdb;
@@ -161,41 +147,34 @@ namespace DMLogger
     HashTable<string?,string>? mdb_mini = null;
     HashTable<string,HashTable<string?,string>?>? mdb = new HashTable<string,HashTable<string?,string>?>( str_hash, str_equal );
 
-    try
+    while ( true )
     {
-      while ( true )
+      string? line = min.read_line( );
+      if ( line == null )
       {
-        string? line = min.read_line( );
-        if ( line == null )
+        if ( print_verbose )
         {
-          if ( print_verbose )
-          {
-            stdout.printf( "EOF of mdb reached\n" );
-          }
-          break;
+          stdout.printf( "EOF of mdb reached\n" );
         }
-
-        string[] tokens = ( (!)line ).split( "\x01" );
-        if ( print_verbose == true )
-        {
-          stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
-        }
-
-        if ( mdb.lookup( tokens[ 0 ] ) != null )
-        {
-          mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );
-        }
-        else
-        {
-          mdb_mini = new HashTable<string?,string>( str_hash, str_equal );
-          mdb_mini.insert( tokens[ 1 ], tokens[ 2 ] );
-          mdb.insert( tokens[ 0 ], mdb_mini );
-        }
+        break;
       }
-    }
-    catch ( Error e )
-    {
-      stderr.printf( "An error occured while parsing the message database %s! %s\n", (!)mdb_file, e.message );
+
+      string[] tokens = ( (!)line ).split( "\x01" );
+      if ( print_verbose == true )
+      {
+        stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
+      }
+
+      if ( mdb.lookup( tokens[ 0 ] ) != null )
+      {
+        mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );
+      }
+      else
+      {
+        mdb_mini = new HashTable<string?,string>( str_hash, str_equal );
+        mdb_mini.insert( tokens[ 1 ], tokens[ 2 ] );
+        mdb.insert( tokens[ 0 ], mdb_mini );
+      }
     }
     return mdb;
   }
@@ -334,7 +313,7 @@ namespace DMLogger
      * @param print_verbose Sets if the output should be verbose.
      * @param debug_mode Sets if the filename and line number should be printed
      */
-    public void print_out( HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose = true, bool debug_mode )
+    public void print_out( HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose, bool debug_mode )
     {
       unowned HashTable<int64?,string>? mdb = _mdb.lookup( this.component );
 
@@ -717,18 +696,18 @@ namespace DMLogger
      */
     public void start_threaded( )
     {
-      try
-      {
-#if GLIB_2_32
+      #if GLIB_2_32
         this.running = new Thread<void*>( "Logger", this.run );
-#else
-        this.running = Thread.create<void*>( this.run, true );
-#endif
-      }
-      catch ( Error e )
-      {
-        GLib.critical( "Error while creating thread for logger: " + e.message );
-      }
+      #else
+        try
+        {
+          this.running = Thread.create<void*>( this.run, true );
+        }
+        catch ( ThreadError e )
+        {
+          stdout.printf( "Error while creating thread for logger: %s\n", e.message );
+        }
+      #endif
     }
 
     /**
@@ -908,26 +887,19 @@ namespace DMLogger
      */
     public void stop( )
     {
-      try
+      if ( this.threaded )
       {
-        if ( this.threaded )
+        LogEntry e = new LogEntry( 0, "", 0, LOG_ENTRY_NONE, 0, 0, false );
+        e.exit_entry = true;
+        DMLogger.log_queue.push( e );
+        if ( this.running != null )
         {
-          LogEntry e = new LogEntry( 0, "", 0, LOG_ENTRY_NONE, 0, 0, false );
-          e.exit_entry = true;
-          DMLogger.log_queue.push( e );
-          if ( this.running != null )
-          {
-            this.running.join( );
-          }
-        }
-        else
-        {
-          write_out_log_buffer( );
+          this.running.join( );
         }
       }
-      catch ( Error e )
+      else
       {
-        GLib.critical( "Error while stopping logger: " + e.message );
+        write_out_log_buffer( );
       }
     }
 
@@ -997,10 +969,13 @@ namespace DMLogger
     public LogReader( string logfile )
     {
       this.logfile = logfile;
-      this.dis = OpenDMLib.IO.open( logfile, "rb" );
-      if ( dis == null )
+      try
       {
-        GLib.critical( "Could not open Log-File for reading!" );
+        this.dis = OpenDMLib.IO.open( logfile, "rb" );
+      }
+      catch ( OpenDMLib.IO.OpenDMLibIOErrors e )
+      {
+        stderr.printf( "Could not open Log-File %s for reading! %s\n", logfile, e.message );
       }
       this.buffer = new uchar[ BUFFER_SIZE ];
       this.buffer_index = BUFFER_SIZE;
@@ -1018,50 +993,43 @@ namespace DMLogger
 
     public void get_from_buffer( void * data, size_t size )
     {
-      try
+      size_t delta = 0;
+      uchar[] tmp_buffer = new uchar[ size ];
+      if ( this.buffer_index + size > BUFFER_SIZE )
       {
-        size_t delta = 0;
-        uchar[] tmp_buffer = new uchar[ size ];
-        if ( this.buffer_index + size > BUFFER_SIZE )
+        /* Das geht sich nicht mehr aus! */
+        /* Muss ich stückeln (kommt vor, wenn sich die Daten noch zum Teil im alten Buffer stehen)? */
+        delta = BUFFER_SIZE - this.buffer_index;
+
+        if ( delta > 0 && delta < size )
         {
-          /* Das geht sich nicht mehr aus! */
-          /* Muss ich stückeln (kommt vor, wenn sich die Daten noch zum Teil im alten Buffer stehen)? */
-          delta = BUFFER_SIZE - this.buffer_index;
-
-          if ( delta > 0 && delta < size )
-          {
-            /* Das Delta ist leider nicht genau die größe => ich muss das Stück aus dem alten Buffer wegsichern ... */
-            Memory.copy( tmp_buffer, &this.buffer[ this.buffer_index ], delta );
-          }
-
-          /* Die nächsten Daten lesen */
-          this.dis.read( this.buffer );
-          if ( delta != 0 )
-          {
-            /* Stückeln is angesagt => den zweiten Teil aus dem neuen Buffer lesen */
-            Memory.copy( &tmp_buffer[delta], buffer, size - delta );
-            this.buffer_index = size - delta;
-          }
-          else
-          {
-            this.buffer_index = 0;
-          }
+          /* Das Delta ist leider nicht genau die größe => ich muss das Stück aus dem alten Buffer wegsichern ... */
+          Memory.copy( tmp_buffer, &this.buffer[ this.buffer_index ], delta );
         }
-        if ( delta == 0 || delta == size )
+
+        /* Die nächsten Daten lesen */
+        this.dis.read( this.buffer );
+        if ( delta != 0 )
         {
-          /* Da war keine Stückelung */
-          Memory.copy( data, &this.buffer[ this.buffer_index ], size );
-          this.buffer_index += size;
+          /* Stückeln is angesagt => den zweiten Teil aus dem neuen Buffer lesen */
+          Memory.copy( &tmp_buffer[delta], buffer, size - delta );
+          this.buffer_index = size - delta;
         }
         else
         {
-          /* Ich habe gestückelt */
-          Memory.copy( data, tmp_buffer, size );
+          this.buffer_index = 0;
         }
       }
-      catch ( Error e )
+      if ( delta == 0 || delta == size )
       {
-        error( "Error while reading from buffer! %s", e.message );
+        /* Da war keine Stückelung */
+        Memory.copy( data, &this.buffer[ this.buffer_index ], size );
+        this.buffer_index += size;
+      }
+      else
+      {
+        /* Ich habe gestückelt */
+        Memory.copy( data, tmp_buffer, size );
       }
     }
 
