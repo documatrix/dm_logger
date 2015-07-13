@@ -806,12 +806,12 @@ namespace DMLogger
       string? v;
       while ( true )
       {
-        v = args.arg( );
+        v = args.arg<string?>( );
         if ( v == null )
         {
           break;
         }
-        tmp += v;
+        tmp += (!)v;
       }
       e.parameters = tmp;
 
