@@ -16,48 +16,8 @@ namespace DMLogger
 
   public static Logger log;
 
-  public static size_t BUFFER_SIZE = 1024 * 4;
-
   /* Ab diesem Trace-Level soll geloggt werden */
   public int log_trace_level = 0;
-
-  public FileStream? log_writer_fos;
-  uchar[] log_buffer;
-  size_t log_buffer_index;
-
-  /* Wenn im Buffer noch was steht, wird es hier raus geschrieben */
-  public void write_out_log_buffer( )
-  {
-    if ( log_buffer_index > 0 )
-    {
-      log_writer_fos.write( log_buffer[ 0:log_buffer_index ] );
-      log_buffer_index = 0;
-    }
-  }
-
-  public void add_to_log_buffer( void * data, size_t size ) throws Error
-  {
-    if ( log_buffer_index + size > BUFFER_SIZE )
-    {
-      /* Das geht sich nicht mehr aus! */
-      log_writer_fos.write( log_buffer[ 0:log_buffer_index ] );
-      log_buffer_index = 0;
-    }
-    Memory.copy( &log_buffer[ log_buffer_index ], data, size );
-    log_buffer_index += size;
-  }
-
-  /**
-   * This method adds a string to the log_buffer
-   * @param s The string you want to add to det log_buffer
-   */
-  public void write_log_string( string s ) throws Error
-  {
-    char[] tmp = s.to_utf8( );
-    int64 l = tmp.length;
-    add_to_log_buffer( &l, sizeof( int64 ) );
-    add_to_log_buffer( tmp, (size_t)l );
-  }
 
   /**
    * This method can be used to read an mdb file which uses the components and message ids.
@@ -435,46 +395,45 @@ namespace DMLogger
       }
     }
 
-    /* Aufbau einer Log-Message */
-    /* Record-Type (uint16), Process-ID (uint16), Thread-ID (uint16), Timestamp (uint64), File-ID (int), Line (uint16), Type (uint16), Concat (byte), Trace-Level (uint16), Message-ID (uint16), Parameter-Count (int16), Parameter-Größe (int64), Parameter (string mit Größe aus dem vorherigen Feld), ... */
-    /* Aufbau einer Log-Message im Falle eines parsed_objects */
-    /* Record-Type (uint16), Process-ID (uint16), Thread-ID (uint16), Timestamp (uint64), File-ID (int), Line (uint16), Type (uint16), Concat (byte), Trace-Level (uint16), Größe Name (int64), Name (string mit Größe aus dem vorherigen Feld), Größe Filename (int64), Filename (string), Fileposition (int64), Line (int64), Page (int32), Tagtype (byte), Begin CS (byte), End CS (byte), Parameter-Count (int16), Parameter Größe (int64), Parameter (string), ..., Content Größe (int64), Content (string) */
-    public void out_file( ) throws Error
+    /**
+     * This method will write the log entry to the given @see OpenDMLib.IO.BufferedFile.
+     * @param log_writer The file to which this entry should be written.
+     */
+    public void out_file( OpenDMLib.IO.BufferedFile log_writer ) throws Error
     {
-      //critical("outing file");
       if ( this.exit_entry )
       {
         this.record_type = LOG_ENTRY_RECORD_TYPE_EOF;
-        add_to_log_buffer( &this.record_type, sizeof( uint16 ) );
+        log_writer.add_to_buffer( &this.record_type, sizeof( uint16 ) );
         return;
       }
-      add_to_log_buffer( &this.record_type, sizeof( uint16 ) );
-      add_to_log_buffer( &this.pid, sizeof( uint16 ) );
-      add_to_log_buffer( &this.tid, sizeof( uint16 ) );
-      add_to_log_buffer( &this.tstamp, sizeof( int64 ) );
-      add_to_log_buffer( &this.file_id, sizeof( int64 ) );
-      add_to_log_buffer( &this.line, sizeof( uint16 ) );
-      add_to_log_buffer( &this.type, sizeof( uint16 ) );
+      log_writer.add_to_buffer( &this.record_type, sizeof( uint16 ) );
+      log_writer.add_to_buffer( &this.pid, sizeof( uint16 ) );
+      log_writer.add_to_buffer( &this.tid, sizeof( uint16 ) );
+      log_writer.add_to_buffer( &this.tstamp, sizeof( int64 ) );
+      log_writer.add_to_buffer( &this.file_id, sizeof( int64 ) );
+      log_writer.add_to_buffer( &this.line, sizeof( uint16 ) );
+      log_writer.add_to_buffer( &this.type, sizeof( uint16 ) );
       if ( this.concat == true )
       {
         uint8 tmp = 1;
-        add_to_log_buffer( &tmp, sizeof( uint8 ) );
+        log_writer.add_to_buffer( &tmp, sizeof( uint8 ) );
       }
       else
       {
         uint8 tmp = 0;
-        add_to_log_buffer( &tmp, sizeof( uint8 ) );
+        log_writer.add_to_buffer( &tmp, sizeof( uint8 ) );
       }
-      add_to_log_buffer( &this.trace_level, sizeof( uint16 ) );
-      add_to_log_buffer( &this.message_id, sizeof( int64 ) );
+      log_writer.add_to_buffer( &this.trace_level, sizeof( uint16 ) );
+      log_writer.add_to_buffer( &this.message_id, sizeof( int64 ) );
 
-      write_log_string( this.component );
+      log_writer.write_string( this.component );
 
       int16 tmp = (int16)this.parameters.length;
-      add_to_log_buffer( &tmp, sizeof( int16 ) );
+      log_writer.add_to_buffer( &tmp, sizeof( int16 ) );
       for ( int i = 0; i < this.parameters.length; i++ )
       {
-        write_log_string( this.parameters[ i ] );
+        log_writer.write_string( this.parameters[ i ] );
       }
     }
   }
@@ -646,6 +605,7 @@ namespace DMLogger
     /* Ein Array das mit Log-Entries befüllt wird, wenn es "von außen" gesetzt wird. */
     public DMArray<LogEntry>? entry_bin = null;
 
+    public OpenDMLib.IO.BufferedFile? log_writer = null;
 
     /*
      * Führt Logging Aktivitäten aus
@@ -661,15 +621,15 @@ namespace DMLogger
         }
         try
         {
-          if ( DMLogger.log_writer_fos != null )
+          if ( this.log_writer != null )
           {
-            e.out_file( );
+            e.out_file( (!)this.log_writer );
           }
           if ( e == null || e.exit_entry == true )
           {
-            if ( DMLogger.log_writer_fos != null )
+            if ( this.log_writer != null )
             {
-              write_out_log_buffer( );
+              ( (!)this.log_writer ).write_out_buffer( );
             }
             break;
           }
@@ -823,7 +783,10 @@ namespace DMLogger
       {
         try
         {
-          e.out_file( );
+          if ( this.log_writer != null )
+          {
+            e.out_file( (!)this.log_writer );
+          }
           if ( log_to_console )
           {
             e.print_out( this.files, this.mdb, false, this.debug_mode );
@@ -866,7 +829,10 @@ namespace DMLogger
         {
           try
           {
-            fi.out_file( );
+            if ( this.log_writer != null )
+            {
+              fi.out_file( (!)this.log_writer );
+            }
             if ( log_to_console )
             {
               fi.print_out( this.files, this.mdb, false, this.debug_mode );
@@ -899,7 +865,10 @@ namespace DMLogger
       }
       else
       {
-        write_out_log_buffer( );
+        if ( this.log_writer != null )
+        {
+          ( (!)this.log_writer ).write_out_buffer( );
+        }
       }
     }
 
@@ -915,7 +884,7 @@ namespace DMLogger
       {
         try
         {
-          DMLogger.log_writer_fos = OpenDMLib.IO.open( logfile, "wb" );
+          this.log_writer = new IO.BufferedFile.with_filename( logfile );
         }
         catch ( OpenDMLib.IO.OpenDMLibIOErrors e )
         {
@@ -924,10 +893,8 @@ namespace DMLogger
       }
       else
       {
-        DMLogger.log_writer_fos = null;
+        this.log_writer = null;
       }
-      log_buffer = new uchar[ BUFFER_SIZE ];
-      log_buffer_index = 0;
 
       this.logged_files = new HashTable<string, int16?>( str_hash, str_equal );
       this.__last_file_id__ = -1;
@@ -961,81 +928,28 @@ namespace DMLogger
   public class LogReader : GLib.Object
   {
     string logfile;
-    FileStream? dis;
-    /* Diese beiden Buffer-Variablen betreffen den Buffer für das Auslesen aus dem File */
-    uchar[] buffer;
-    size_t buffer_index;
+
+    /**
+     * This @see OpenDMLib.IO.BufferedFileReader represents the log file.
+     */
+    public OpenDMLib.IO.BufferedFileReader log_reader;
 
     public LogReader( string logfile )
     {
       this.logfile = logfile;
       try
       {
-        this.dis = OpenDMLib.IO.open( logfile, "rb" );
+        this.log_reader = new OpenDMLib.IO.BufferedFileReader.with_filename( logfile );
       }
       catch ( OpenDMLib.IO.OpenDMLibIOErrors e )
       {
         stderr.printf( "Could not open Log-File %s for reading! %s\n", logfile, e.message );
       }
-      this.buffer = new uchar[ BUFFER_SIZE ];
-      this.buffer_index = BUFFER_SIZE;
-    }
-
-    public string read_string( ) throws Error
-    {
-      int64 l = 0;
-      this.get_from_buffer( &l, sizeof( int64 ) );
-      char[] tmp = new char[ l + 1 ];
-      this.get_from_buffer( tmp, (size_t)l );
-      tmp[ l ] = 0;
-      return (string)tmp;
-    }
-
-    public void get_from_buffer( void * data, size_t size )
-    {
-      size_t delta = 0;
-      uchar[] tmp_buffer = new uchar[ size ];
-      if ( this.buffer_index + size > BUFFER_SIZE )
-      {
-        /* Das geht sich nicht mehr aus! */
-        /* Muss ich stückeln (kommt vor, wenn sich die Daten noch zum Teil im alten Buffer stehen)? */
-        delta = BUFFER_SIZE - this.buffer_index;
-
-        if ( delta > 0 && delta < size )
-        {
-          /* Das Delta ist leider nicht genau die größe => ich muss das Stück aus dem alten Buffer wegsichern ... */
-          Memory.copy( tmp_buffer, &this.buffer[ this.buffer_index ], delta );
-        }
-
-        /* Die nächsten Daten lesen */
-        this.dis.read( this.buffer );
-        if ( delta != 0 )
-        {
-          /* Stückeln is angesagt => den zweiten Teil aus dem neuen Buffer lesen */
-          Memory.copy( &tmp_buffer[delta], buffer, size - delta );
-          this.buffer_index = size - delta;
-        }
-        else
-        {
-          this.buffer_index = 0;
-        }
-      }
-      if ( delta == 0 || delta == size )
-      {
-        /* Da war keine Stückelung */
-        Memory.copy( data, &this.buffer[ this.buffer_index ], size );
-        this.buffer_index += size;
-      }
-      else
-      {
-        /* Ich habe gestückelt */
-        Memory.copy( data, tmp_buffer, size );
-      }
     }
 
     public LogEntry? next_entry( )
     {
-      if ( this.dis == null )
+      if ( this.log_reader == null )
       {
         GLib.critical( "No Log-File opened!" );
         return null;
@@ -1044,26 +958,26 @@ namespace DMLogger
       {
         LogEntry e;
         uint16 record_type = 0;
-        this.get_from_buffer( &record_type, sizeof(uint16) );
+        this.log_reader.get_from_buffer( &record_type, sizeof( uint16 ) );
         if ( record_type == LOG_ENTRY_RECORD_TYPE_EOF )
         {
           stdout.printf( "EOF of logfile reached\n" );
           return null;
         }
         uint16 pid = 0;
-        this.get_from_buffer( &pid, sizeof( uint16 ) );
+        this.log_reader.get_from_buffer( &pid, sizeof( uint16 ) );
         uint16 tid = 0;
-        this.get_from_buffer( &tid, sizeof( uint16 ) );
+        this.log_reader.get_from_buffer( &tid, sizeof( uint16 ) );
         int64 tstamp = 0;
-        this.get_from_buffer( &tstamp, sizeof( int64 ) );
+        this.log_reader.get_from_buffer( &tstamp, sizeof( int64 ) );
         int64 file_id = 0;
-        this.get_from_buffer( &file_id, sizeof( int64 ) );
+        this.log_reader.get_from_buffer( &file_id, sizeof( int64 ) );
         uint16 line = 0;
-        this.get_from_buffer( &line, sizeof( uint16 ) );
+        this.log_reader.get_from_buffer( &line, sizeof( uint16 ) );
         uint16 type = 0;
-        this.get_from_buffer( &type, sizeof( uint16 ) );
+        this.log_reader.get_from_buffer( &type, sizeof( uint16 ) );
         uint8 concat = 0;
-        this.get_from_buffer( &concat, sizeof( uint8 ) );
+        this.log_reader.get_from_buffer( &concat, sizeof( uint8 ) );
         bool concat_b = false;
         if ( concat == 0 )
         {
@@ -1074,18 +988,18 @@ namespace DMLogger
           concat_b = true;
         }
         uint16 trace_level = 0;
-        this.get_from_buffer( &trace_level, sizeof( uint16 ) );
+        this.log_reader.get_from_buffer( &trace_level, sizeof( uint16 ) );
         int64 message_id = 0;
-        this.get_from_buffer( &message_id, sizeof( int64 ) );
+        this.log_reader.get_from_buffer( &message_id, sizeof( int64 ) );
 
-        string component = this.read_string( );
+        string component = this.log_reader.read_string( );
 
         int16 parameter_count = 0;
-        this.get_from_buffer( &parameter_count, sizeof( int16 ) );
-        string[] tmp = {};
+        this.log_reader.get_from_buffer( &parameter_count, sizeof( int16 ) );
+        string[] tmp = new string[ parameter_count ];
         for ( int p = 0; p < parameter_count; p++ )
         {
-          tmp += this.read_string( );
+          tmp[ p ] = this.log_reader.read_string( );
         }
         e = new LogEntry( message_id, component, file_id, type, line, trace_level, concat_b );
         e.parameters = tmp;
