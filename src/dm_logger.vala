@@ -141,7 +141,7 @@ namespace DMLogger
 
   public class LogEntry : GLib.Object
   {
-    public uint16 tid;
+    public uint64 tid;
     public uint16 pid;
     public int64 message_id;
     /* Gibt die aktuelle Komponente an */
@@ -171,7 +171,7 @@ namespace DMLogger
     public LogEntry( int64 message_id, string component, int64 file_id, uint16 type, uint16 line, uint16 trace_level, bool concat )
     {
       this.exit_entry = false;
-      this.tid = (uint16)OpenDMLib.gettid( );
+      this.tid = OpenDMLib.gettid( );
       this.pid = (uint16)OpenDMLib.getpid( );
       this.message_id = message_id;
       this.record_type = LOG_ENTRY_RECORD_TYPE_MESSAGE;
@@ -282,7 +282,7 @@ namespace DMLogger
       {
         stdout.printf( "\nLog-Entry\n" );
         stdout.printf( "\tProcess-ID: %d\n", this.pid );
-        stdout.printf( "\tThread-ID: %d\n", this.tid );
+        stdout.printf( "\tThread-ID: %lld\n", this.tid );
         stdout.printf( "\tTimestamp: %lld\n", this.tstamp );
         stdout.printf( "\tRecord-Type: %d\n", this.record_type );
         stdout.printf( "\tFile-ID: %g\n", this.file_id );
@@ -409,7 +409,7 @@ namespace DMLogger
       }
       log_writer.add_to_buffer( &this.record_type, sizeof( uint16 ) );
       log_writer.add_to_buffer( &this.pid, sizeof( uint16 ) );
-      log_writer.add_to_buffer( &this.tid, sizeof( uint16 ) );
+      log_writer.add_to_buffer( &this.tid, sizeof( uint64 ) );
       log_writer.add_to_buffer( &this.tstamp, sizeof( int64 ) );
       log_writer.add_to_buffer( &this.file_id, sizeof( int64 ) );
       log_writer.add_to_buffer( &this.line, sizeof( uint16 ) );
@@ -607,6 +607,25 @@ namespace DMLogger
 
     public OpenDMLib.IO.BufferedFile? log_writer = null;
 
+    /**
+     * This hash table will contain the log entries for certain Threads.
+     */
+    public HashTable<uint64?,DMArray<LogEntry>?>? tid_entry_bin = null;
+
+    /**
+     * Adds a new Thread-ID to the tid_entry_bin hash table.
+     * @param tid the ID of the Thread
+     */
+    public void create_log_entry_bin_for_thread( uint64 tid )
+    {
+      if ( this.tid_entry_bin == null )
+      {
+        this.tid_entry_bin = new HashTable<uint64?,DMArray<LogEntry>?>( OpenDMLib.uint64_hash, OpenDMLib.uint64_equal );
+      }
+      OpenDMLib.DMArray<DMLogger.LogEntry> log_messages = new OpenDMLib.DMArray<DMLogger.LogEntry>( );
+      this.tid_entry_bin.insert( tid, log_messages );
+    }
+
     /*
      * Führt Logging Aktivitäten aus
      */
@@ -636,6 +655,10 @@ namespace DMLogger
           if ( log_to_console )
           {
             e.print_out( this.files, this.mdb, false, this.debug_mode );
+          }
+          if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null )
+          {
+            this.tid_entry_bin.get( e.tid ).push( e );
           }
           if ( this.entry_bin != null )
           {
@@ -790,6 +813,10 @@ namespace DMLogger
           if ( log_to_console )
           {
             e.print_out( this.files, this.mdb, false, this.debug_mode );
+          }
+          if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null )
+          {
+            this.tid_entry_bin.get( e.tid ).push( e );
           }
           if ( this.entry_bin != null )
           {
@@ -966,8 +993,8 @@ namespace DMLogger
         }
         uint16 pid = 0;
         this.log_reader.get_from_buffer( &pid, sizeof( uint16 ) );
-        uint16 tid = 0;
-        this.log_reader.get_from_buffer( &tid, sizeof( uint16 ) );
+        uint64 tid = 0;
+        this.log_reader.get_from_buffer( &tid, sizeof( uint64 ) );
         int64 tstamp = 0;
         this.log_reader.get_from_buffer( &tstamp, sizeof( int64 ) );
         int64 file_id = 0;
