@@ -16,6 +16,7 @@ set (VALA_PACKAGES ${VALA_PACKAGES} gobject-2.0)
 set (VALA_PACKAGES ${VALA_PACKAGES} dmtestlib-1.0)
 set (VALA_PACKAGES ${VALA_PACKAGES} posix)
 set (VALA_PACKAGES ${VALA_PACKAGES} open_dmlib-1.0)
+set (VALA_PACKAGES ${VALA_PACKAGES} open_dmlib_io)
 set (VALA_PACKAGES ${VALA_PACKAGES} zlib)
 
 set (DM_LOGGER_SOURCES dm_logger.vala)

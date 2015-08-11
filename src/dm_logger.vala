@@ -33,7 +33,7 @@ namespace DMLogger
       return null;
     }
 
-    FileStream min;
+    DMFileStream min;
     try
     {
       min = OpenDMLib.IO.open( (!)mdb_file, "rb" );
@@ -93,7 +93,7 @@ namespace DMLogger
       stderr.printf( "No MDB-File specified!\n" );
       return null;
     }
-    FileStream min;
+    DMFileStream min;
     try
     {
       min = OpenDMLib.IO.open( (!)mdb_file, "rb" );
