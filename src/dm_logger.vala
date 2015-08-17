@@ -646,11 +646,18 @@ namespace DMLogger
     /* Ein Array das mit Log-Entries befüllt wird, wenn es "von außen" gesetzt wird. */
     public DMArray<LogEntry>? entry_bin = null;
 
+    /**
+     * This hash table will contain the log entries for certain Threads.
+     */
     public HashTable<uint64?,DMArray<LogEntry>?>? tid_entry_bin = null;
 
+    /**
+     * Adds a new Thread-ID to the tid_entry_bin hash table.
+     * @param tid the ID of the Thread
+     */
     public void create_log_entry_bin_for_thread( uint64 tid )
     {
-      if( this.tid_entry_bin == null )
+      if ( this.tid_entry_bin == null )
       {
         this.tid_entry_bin = new HashTable<uint64?,DMArray<LogEntry>?>( OpenDMLib.uint64_hash, OpenDMLib.uint64_equal );
       }
@@ -687,7 +694,7 @@ namespace DMLogger
           {
             e.print_out( this.files, this.mdb, false, this.debug_mode );
           }
-          if( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null )
+          if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null )
           {
             this.tid_entry_bin.get( e.tid ).push( e );
           }
@@ -841,6 +848,10 @@ namespace DMLogger
           if ( log_to_console )
           {
             e.print_out( this.files, this.mdb, false, this.debug_mode );
+          }
+          if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null )
+          {
+            this.tid_entry_bin.get( e.tid ).push( e );
           }
           if ( this.entry_bin != null )
           {

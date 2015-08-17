@@ -22,6 +22,15 @@ public class TestDMLogger
       )
     );
 
+    ts_dm_logger_entry_bin.add(
+      new GLib.TestCase(
+        "test_dm_logger_f_create_log_entry_bin_for_thread",
+        TestDMLogger.default_setup,
+        TestDMLogger.test_dm_logger_f_create_log_entry_bin_for_thread,
+        TestDMLogger.default_teardown
+      )
+    );
+
     ts_dm_logger.add_suite( ts_dm_logger_entry_bin );
 
     GLib.Test.run( );
@@ -56,6 +65,35 @@ public class TestDMLogger
 
     GLib.assert( entry_bin.length == 1 );
     GLib.assert( entry_bin[ 0 ].type == DMLogger.LOG_ENTRY_ERROR );
+  }
+
+  /**
+   * This method tests if the create_log_entry_bin_for_thread works.
+   */
+  public static void test_dm_logger_f_create_log_entry_bin_for_thread( )
+  {
+    DMLogger.Logger logger = LoggerFactory.get_logger( );
+
+    logger.start_threaded( );
+    OpenDMLib.DMArray<DMLogger.LogEntry> entry_bin = new OpenDMLib.DMArray<DMLogger.LogEntry>( );
+    logger.entry_bin = entry_bin;
+    logger.create_log_entry_bin_for_thread( OpenDMLib.gettid( ) );
+
+    logger.error( "", "", 0, "", 0, false, 0 );
+    logger.error( "", "", 0, "", 0, false, 0 );
+
+    uint64 ThreadID = 0;
+    Thread<void*> t = new Thread<void*>( "Logger Test", ( ) => {
+      ThreadID =  OpenDMLib.gettid( );
+      logger.create_log_entry_bin_for_thread( OpenDMLib.gettid( ) );
+      logger.error( "", "", 0, "", 0, false, 0 );
+      
+      return null;
+    } );
+    t.join( );
+    logger.stop( );
+    GLib.assert( logger.tid_entry_bin.get( OpenDMLib.gettid( ) ).length == 3 );
+    GLib.assert( logger.tid_entry_bin.get( ThreadID ).length == 1 );
   }
 }
 
