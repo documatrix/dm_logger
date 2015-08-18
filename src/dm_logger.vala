@@ -698,7 +698,7 @@ namespace DMLogger
           {
             this.tid_entry_bin.get( e.tid ).push( e );
           }
-          else if ( this.entry_bin != null )
+          if ( this.entry_bin != null )
           {
             this.entry_bin.push( e );
           }

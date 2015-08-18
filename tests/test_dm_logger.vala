@@ -82,9 +82,9 @@ public class TestDMLogger
     logger.error( "", "", 0, "", 0, false, 0 );
     logger.error( "", "", 0, "", 0, false, 0 );
 
-    uint64 ThreadID = 0;
+    uint64 thread_id = 0;
     Thread<void*> t = new Thread<void*>( "Logger Test", ( ) => {
-      ThreadID =  OpenDMLib.gettid( );
+      thread_id = OpenDMLib.gettid( );
       logger.create_log_entry_bin_for_thread( OpenDMLib.gettid( ) );
       logger.error( "", "", 0, "", 0, false, 0 );
       
@@ -93,7 +93,7 @@ public class TestDMLogger
     t.join( );
     logger.stop( );
     GLib.assert( logger.tid_entry_bin.get( OpenDMLib.gettid( ) ).length == 3 );
-    GLib.assert( logger.tid_entry_bin.get( ThreadID ).length == 1 );
+    GLib.assert( logger.tid_entry_bin.get( thread_id ).length == 1 );
   }
 }
 
