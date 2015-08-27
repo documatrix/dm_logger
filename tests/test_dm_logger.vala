@@ -83,13 +83,33 @@ public class TestDMLogger
     logger.error( "", "", 0, "", 0, false, 0 );
 
     uint64 thread_id = 0;
-    Thread<void*> t = new Thread<void*>( "Logger Test", ( ) => {
+#if GLIB_2_32
+    Thread<void*> t = new Thread<void*>( "Logger Test", ( ) =>
+    {
       thread_id = OpenDMLib.gettid( );
       logger.create_log_entry_bin_for_thread( OpenDMLib.gettid( ) );
       logger.error( "", "", 0, "", 0, false, 0 );
-      
+
       return null;
     } );
+#else
+    unowned Thread<void*> t;
+    try
+    {
+      t = Thread.create<void*>( ( ) =>
+      {
+        thread_id = OpenDMLib.gettid( );
+        logger.create_log_entry_bin_for_thread( OpenDMLib.gettid( ) );
+        logger.error( "", "", 0, "", 0, false, 0 );
+
+        return null;
+      }, true );
+    }
+    catch ( ThreadError e )
+    {
+      GLib.assert_not_reached( );
+    }
+#endif
     t.join( );
     logger.stop( );
     GLib.assert( logger.tid_entry_bin.get( OpenDMLib.gettid( ) ).length == 3 );
