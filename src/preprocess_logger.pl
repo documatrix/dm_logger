@@ -165,13 +165,8 @@ sub parse_valafile
     exit(1);
   }
   my $line;
-  my $log_preprocessed = 0;
   while ($line = <FIN>)
   {
-    if ( $line eq "/* PREPROCESSED - DYNAMIC */\n" )
-    {
-      $log_preprocessed = 1;
-    }
     if ( $line eq "/* PREPROCESSED */\n" )
     {
       close FIN;
@@ -192,15 +187,12 @@ sub parse_valafile
 
   print "Git-Version $git_version\n";
 
-  # Diese Variable gibt an, welchen Log-Level (debug, info, warning, error) die letzte Log-Message hatte
+  # Diese Variable gibt an, welchen Log-Level (debug, info, warning, error, fatal) die letzte Log-Message hatte
   my $previous_log_level = "";
 
   # Erstellen eines Datums mit Zeit
   my ( $sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst ) = localtime( time );
   my $date_time = sprintf( "%02d.%02d.%04d %02d:%02d:%02d", $mday, $mon + 1, $year + 1900, $hour, $min, $sec );
-
-  # Wenn das Source-File die Git-Version oder das Datum enthält, wird es als dynamisch preprocessed markiert
-  my $dynamic_file = 0;
 
   while ($line = shift(@lines))
   {
@@ -208,112 +200,102 @@ sub parse_valafile
     {
       $line =~ s/:::GITVERSION:::/$git_version/g;
       $line =~ s/:::DATETIME:::/$date_time/g;
-      $dynamic_file = 1;
     }
     $line_number ++;
-    if ( $log_preprocessed == 0 )
+    
+    $line =~ s/\\"/\x01/g;
+    if ( $debug ne "1" && $line =~ /^[^\.]*(GLib\.)?debug\(.*\);/ )
     {
-      $line =~ s/\\"/\x01/g;
-      if ($debug ne "1" && $line =~ /^[^\.]*(GLib\.)?debug\(.*\);/)
+      $line = $` . $';
+      next;
+    }
+    elsif ($line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.log\.(debug|info|warning|error|fatal)\s*\(\s*([0-9]+)\s*,\s*(true|false)\s*,\s*("[^"]*"\s*|[^\s]+\s*)(\)|,)/i)
+    {
+      my $package = $1;
+      my $func = $2;
+      my $trace_level = $3;
+      my $concat = $4;
+      my $message = $5;
+      my $nach_string = $6;
+      my $davor = $`;
+      my $danach = $';
+      my $my_id;
+
+      if ($debug ne "1" && $previous_log_level eq "debug")
       {
-        $line = $` . $';
-        next;
+        #next;
       }
-      elsif ($line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.log\.(debug|info|warning|error)\s*\(\s*([0-9]+)\s*,\s*(true|false)\s*,\s*("[^"]*"\s*|[^\s]+\s*)(\)|,)/i)
+
+      if ($davor !~ /\s*\/\/\s*$/)
       {
-        my $package = $1;
-        my $func = $2;
-        my $trace_level = $3;
-        my $concat = $4;
-        my $message = $5;
-        my $nach_string = $6;
-        my $davor = $`;
-        my $danach = $';
-        my $my_id;
-
-        if ($debug ne "1" && $previous_log_level eq "debug")
+        if ($message !~ /^"/)
         {
-          #next;
+          $nach_string = ", $message" . $nach_string;
+          $message = "\${1}";
         }
-
-        if ($davor !~ /\s*\/\/\s*$/)
+        else
         {
-          if ($message !~ /^"/)
-          {
-            $nach_string = ", $message" . $nach_string;
-            $message = "\${1}";
-          }
-          else
-          {
-            $message =~ /^\s*"([^"]*)"\s*$/;
-            $message = $1;
-          }
-          if ( defined $messages{ $component }->{ $message } )
-          {
-            #print "message already defined\n";
-            $my_id = $messages{ $component}->{ $message };
-          }
-          else
-          {
-            #print "new message\n";
-            $message_id ++;
-            $my_id = $message_id;
-            $messages{ $component }->{ $message } = $my_id;
-          }
-          $line = "";
-          if ($func eq "debug")
-          {
-            $line = "if ($package.log_trace_level >= $trace_level) { ";
-            $danach =~ s/\n$//;
-          }
-          $line .= $davor . "$package.log.$func( \"$component\", \"$vfile\", $line_number, \"$git_version\", $trace_level, $concat, $my_id$nach_string$danach";
-          if ($func eq "debug")
-          {
-            $line .= " }\n";
-          }
+          $message =~ /^\s*"([^"]*)"\s*$/;
+          $message = $1;
+        }
+        if ( defined $messages{ $component }->{ $message } )
+        {
+          #print "message already defined\n";
+          $my_id = $messages{ $component}->{ $message };
+        }
+        else
+        {
+          #print "new message\n";
+          $message_id ++;
+          $my_id = $message_id;
+          $messages{ $component }->{ $message } = $my_id;
+        }
+        $line = "";
+        if ($func eq "debug")
+        {
+          $line = "if ($package.log_trace_level >= $trace_level) { ";
+          $danach =~ s/\n$//;
+        }
+        $line .= $davor . "$package.log.$func( \"$component\", \"$vfile\", $line_number, \"$git_version\", $trace_level, $concat, $my_id$nach_string$danach";
+        if ($func eq "debug")
+        {
+          $line .= " }\n";
         }
       }
-      elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.t\s*\(\s*("[^"]+"|[^\s]+)\s*,\s*("[^"]*"|[^\s]+)\s*(\)|,)/i )
+    }
+    elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.t\s*\(\s*("[^"]+"|[^\s]+)\s*,\s*("[^"]*"|[^\s]+)\s*(\)|,)/i )
+    {
+      my $package = $1;
+      my $caption = $2;
+      my $message = $3;
+      my $nach_string = $4;
+      my $danach = $';
+      my $davor = $`;
+
+      if ( $davor !~ /\s*\/\/\s*$/ )
       {
-        my $package = $1;
-        my $caption = $2;
-        my $message = $3;
-        my $nach_string = $4;
-        my $danach = $';
-        my $davor = $`;
-
-        if ( $davor !~ /\s*\/\/\s*$/ )
+        if ( $message !~ /^\s*"/ )
         {
-          if ( $message !~ /^\s*"/ )
-          {
-            $nach_string = ", $message" . $nach_string;
-            $message = "\${1}";
-          }
-          else
-          {
-            $message =~ /^\s*"([^"]*)"\s*$/;
-            $message = $1;
-          }
+          $nach_string = ", $message" . $nach_string;
+          $message = "\${1}";
+        }
+        else
+        {
+          $message =~ /^\s*"([^"]*)"\s*$/;
+          $message = $1;
+        }
 
-          warn "message: $message - caption: $caption";
-          if ( !defined $messages{ $component }->{ $message } && $caption =~ /^"(.*)"$/ )
-          {
-            $messages{ $component }->{ $message } = $1;
-          }
+        warn "message: $message - caption: $caption";
+        if ( !defined $messages{ $component }->{ $message } && $caption =~ /^"(.*)"$/ )
+        {
+          $messages{ $component }->{ $message } = $1;
         }
       }
     }
     $line =~ s/\x01/\\"/g;
     print FOUT $line;
   }
-  if ( $dynamic_file )
-  {
-    print FOUT "/* PREPROCESSED - DYNAMIC */\n";
-  }
-  else
-  {
-    print FOUT "/* PREPROCESSED */\n";
-  }
-
+  
+  print FOUT "/* PREPROCESSED */\n";
   close FOUT;
 }
