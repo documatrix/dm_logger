@@ -219,7 +219,7 @@ sub parse_valafile
         $line = $` . $';
         next;
       }
-      elsif ($line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.log\.(debug|info|warning|error)\s*\(\s*([0-9]+)\s*,\s*(true|false)\s*,\s*("[^"]*"\s*|[^\s]+\s*)(\)|,)/i)
+      elsif ($line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.log\.(debug|info|warning|error|fatal)\s*\(\s*([0-9]+)\s*,\s*(true|false)\s*,\s*("[^"]*"\s*|[^\s]+\s*)(\)|,)/i)
       {
         my $package = $1;
         my $func = $2;
