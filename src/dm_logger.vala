@@ -581,7 +581,7 @@ namespace DMLogger
      * contains the component and another hastable filled with
      * the messages (with message ids names as keys).
      */
-    public HashTable<string,HashTable<int64?,string>?>? mdb;
+    public HashTable<string,HashTable<int64?,string>?>? mdb = null;
 
     /**
      * This hashtable contains the filenames of the files which
@@ -600,7 +600,7 @@ namespace DMLogger
      * This hashtable will be filled by the read_caption_mdb method and
      * contains the messages with caption names as keys.
      */
-    public HashTable<string,HashTable<string?,string>?>? caption_mdb;
+    public HashTable<string,HashTable<string?,string>?>? caption_mdb = null;
 
     /* Ein Array das mit Log-Entries befüllt wird, wenn es "von außen" gesetzt wird. */
     public DMArray<LogEntry>? entry_bin = null;
@@ -937,9 +937,15 @@ namespace DMLogger
     {
       if ( log_to_console )
       {
-        this.mdb_file = mdb_file;
-        this.mdb = DMLogger.read_mdb( mdb_file, false );
-        this.caption_mdb = DMLogger.read_caption_mdb( mdb_file, false );
+        if ( this.mdb == null )
+        {
+          this.mdb_file = mdb_file;
+          this.mdb = DMLogger.read_mdb( mdb_file, false );
+        }
+        if ( this.caption_mdb == null )
+        {
+          this.caption_mdb = DMLogger.read_caption_mdb( mdb_file, false );
+        }
         if ( this.mdb == null || this.caption_mdb == null )
         {
           stderr.printf( "Could not initialize logger correctly! MDB-File %s could not be read!\n", this.mdb_file );
