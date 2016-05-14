@@ -13,6 +13,18 @@ namespace DMLogger
   public static const uint16 LOG_ENTRY_INFO = 2;
   public static const uint16 LOG_ENTRY_WARNING = 3;
   public static const uint16 LOG_ENTRY_ERROR = 4;
+  public static const uint16 LOG_ENTRY_FATAL = 5;
+
+  /**
+   * counts the log
+   */
+  private int64 log_counter = 0;
+
+  /**
+   * The maximum log-count.
+   * If this is -1, there is no limit.
+   */
+  private int64 max_log_count = -1;
 
   public static Logger log;
 
@@ -347,6 +359,10 @@ namespace DMLogger
           {
             stdout.printf( "%c[1mWARNING ", ESC );
           }
+          else if ( this.type == LOG_ENTRY_FATAL )
+          {
+            stdout.printf( "%c[1;31mFATAL ", ESC );
+          }
           if ( this.type == LOG_ENTRY_DEBUG )
           {
             stdout.printf( "DEBUG " );
@@ -355,6 +371,7 @@ namespace DMLogger
           {
             stdout.printf( "INFO " );
           }
+
           DMDateTime dt = new DMDateTime.from_unix_local( (int64)( this.tstamp / (int64)1000000 ) );
           stdout.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
 
@@ -382,7 +399,7 @@ namespace DMLogger
           {
             stdout.printf( "%s", this.parse_message( message, parameters ) );
           }
-          if ( this.type == LOG_ENTRY_ERROR || this.type == LOG_ENTRY_WARNING )
+          if ( this.type == LOG_ENTRY_ERROR || this.type == LOG_ENTRY_WARNING || this.type == LOG_ENTRY_FATAL )
           {
             stdout.printf( "%c[0m",ESC );
           }
@@ -715,7 +732,7 @@ namespace DMLogger
     public void debug( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
       va_list l = va_list( );
-      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, component, l );
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_DEBUG, trace_level, concat, message_id, component, false, l );
     }
 
     /**
@@ -732,7 +749,7 @@ namespace DMLogger
     public void info( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
       va_list l = va_list( );
-      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, component, l );
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_INFO, trace_level, concat, message_id, component, false, l );
     }
 
     /**
@@ -749,7 +766,7 @@ namespace DMLogger
     public void warning( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
       va_list l = va_list( );
-      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, component, l );
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_WARNING, trace_level, concat, message_id, component, false, l );
     }
 
     /**
@@ -766,7 +783,24 @@ namespace DMLogger
     public void error( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
     {
       va_list l = va_list( );
-      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, component, l );
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_ERROR, trace_level, concat, message_id, component, false, l );
+    }
+
+    /**
+     * A new error LogEntry will be created.
+     * @param component The current component.
+     * @param filename The ID of the LogEntry.
+     * @param line_number The line in which the error occured.
+     * @param git_version The git Version.
+     * @param trace_level Every LogEntry with a lower trace_level than the given one will be printed.
+     * @param concat Specifies if the LogEntriy is concatenated.
+     * @param message_id This flag specifies the message_id.
+     * @param ... A list of strings which will be used to replace the ${...} patterns.
+     */
+    public void fatal( string component, string filename, uint16 line_number, string git_version, uint16 trace_level, bool concat, int64 message_id, ... )
+    {
+      va_list l = va_list( );
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_FATAL, trace_level, concat, message_id, component, true, l );
     }
 
     /**
@@ -779,9 +813,10 @@ namespace DMLogger
      * @param concat Specifies if the LogEntriy is concatenated.
      * @param message_id This flag specifies the message_id.
      * @param component The current component.
+     * @param force_log If this is true the log get logged no matter what the log-count is.
      * @param va_list args A list of strings params.
      */
-    private void __generate_message__( string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, va_list args )
+    private void __generate_message__( string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, bool force_log, va_list args )
     {
       int64 file_id = this.__handle_file__( filename, component, git_version, line_number, trace_level );
       LogEntry e = new LogEntry( message_id, component, file_id, type, line_number, trace_level, concat );
@@ -810,15 +845,15 @@ namespace DMLogger
           {
             e.out_file( (!)this.log_writer );
           }
-          if ( log_to_console )
+          if ( log_to_console && this.should_make_log( force_log ) )
           {
             e.print_out( this.files, this.mdb, false, this.debug_mode );
           }
-          if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null )
+          if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null && this.should_make_log( force_log ) )
           {
             this.tid_entry_bin.get( e.tid ).push( e );
           }
-          if ( this.entry_bin != null )
+          if ( this.entry_bin != null && this.should_make_log( force_log ) )
           {
             this.entry_bin.push( e );
           }
@@ -828,6 +863,34 @@ namespace DMLogger
           stderr.printf( "Error while logging message: %s\n", err.message );
         }
       }
+      log_counter ++;
+    }
+
+    /**
+     * This method resets the log_count
+     */
+    public void reset_log_count( )
+    {
+      log_counter = 0;
+    }
+
+    /**
+     * This method sets the max_log_count
+     * @param max_log_count The max_log_count.
+     */
+    public void set_max_log_count( int64 log_count )
+    {
+      max_log_count = log_count;
+    }
+
+    /**
+     * This method returns if the log-count is ok to log
+     * @param force_log If this is true the return-value is true.
+     * @return if the log-count is ok to log true else false.
+     */
+    public bool should_make_log( bool force_log )
+    {
+      return force_log || log_counter < max_log_count || max_log_count == -1;
     }
 
     /**
