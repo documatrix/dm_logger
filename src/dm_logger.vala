@@ -24,7 +24,7 @@ namespace DMLogger
    * The maximum log-count.
    * If this is -1, there is no limit.
    */
-  private int64 max_log_count = -1;
+  private int64 max_log_count = 0 - 1;
 
   public static Logger log;
 
