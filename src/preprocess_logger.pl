@@ -7,6 +7,7 @@ use utf8;
 my $dir = shift;
 my $mdb = shift;
 my $component = shift;
+my $c_compiler = shift;
 
 # Das debug-Flag kann 1, 0 oder nix sein. Wenn es 1 ist, werden alle Debug-Ausgaben gelassen, sonst entfernt
 my $debug = shift;
@@ -14,6 +15,15 @@ if (!defined $debug || $debug ne "1")
 {
   $debug = "0";
 }
+
+my $architektur = `uname -m`;
+if ( $c_compiler =~ /(i686|x86_64)[^\/]+mingw[^\/]+$/ )
+{
+  $architektur = $1;
+}
+$architektur =~ s/\s//g;
+$architektur =~ s/i686/(32-Bit)/g;
+$architektur =~ s/x86_64/(64-Bit)/g;
 
 my @merge_mdbs = @ARGV;
 
@@ -204,10 +214,11 @@ sub parse_valafile
 
   while ($line = shift(@lines))
   {
-    if ( $line =~ /:::GITVERSION:::/ || $line =~ /:::DATETIME:::/ )
+    if ( $line =~ /:::GITVERSION:::/ || $line =~ /:::DATETIME:::/ || $line =~ /:::ARCHITEKTUR:::/ )
     {
       $line =~ s/:::GITVERSION:::/$git_version/g;
       $line =~ s/:::DATETIME:::/$date_time/g;
+      $line =~ s/:::ARCHITEKTUR:::/$architektur/g;
       $dynamic_file = 1;
     }
     $line_number ++;
