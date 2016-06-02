@@ -457,6 +457,7 @@ namespace DMLogger
 
   /**
    * This method can be used to translate a log message using the message database to a language.
+   * @param component The component.
    * @param caption_name The name of the caption.
    * @param fallback If no message database is loaded then this fallback message is used.
    * @param ... A list of strings which will be used to replace the ${...} patterns.
