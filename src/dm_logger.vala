@@ -468,7 +468,7 @@ namespace DMLogger
     string message = fallback;
 
     /* Check if a message database is loaded and then get the message from the mdb... */
-    if ( DMLogger.log != null && DMLogger.log.mdb != null )
+    if ( DMLogger.log != null && DMLogger.log.caption_mdb != null && DMLogger.log.caption_mdb.lookup( component ) != null )
     {
       unowned string? mdb_message = DMLogger.log.caption_mdb.lookup( component ).lookup( caption_name );
       if ( mdb_message != null )
