@@ -25,6 +25,14 @@ $architektur =~ s/\s//g;
 $architektur =~ s/i686/(32-Bit)/g;
 $architektur =~ s/x86_64/(64-Bit)/g;
 
+my $pkg_config = "pkg-config";
+if ( $c_compiler =~ /^(.*mingw.*)gcc$/ )
+{
+  $pkg_config = "$1${pkg_config}";
+}
+my $magick_version = `${pkg_config} --modversion ImageMagick`;
+$magick_version =~ s/^\s+|\s+$//g;
+
 my @merge_mdbs = @ARGV;
 
 if ($dir eq "")
@@ -214,11 +222,12 @@ sub parse_valafile
 
   while ($line = shift(@lines))
   {
-    if ( $line =~ /:::GITVERSION:::/ || $line =~ /:::DATETIME:::/ || $line =~ /:::ARCHITEKTUR:::/ )
+    if ( $line =~ /:::GITVERSION:::/ || $line =~ /:::DATETIME:::/ || $line =~ /:::ARCHITEKTUR:::/ || $line =~ /:::IMAGEMAGICK_VERSION:::/ )
     {
       $line =~ s/:::GITVERSION:::/$git_version/g;
       $line =~ s/:::DATETIME:::/$date_time/g;
       $line =~ s/:::ARCHITEKTUR:::/$architektur/g;
+      $line =~ s/:::IMAGEMAGICK_VERSION:::/$magick_version/g;
       $dynamic_file = 1;
     }
     $line_number ++;
