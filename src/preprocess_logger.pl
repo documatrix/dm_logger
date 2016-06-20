@@ -321,6 +321,7 @@ sub parse_valafile
             $messages{ $component }->{ $message } = $1;
           }
         }
+        $line = $davor . "$package.t( \"$component\", $caption, \"$message\" $nach_string$danach";
       }
     }
     $line =~ s/\x01/\\"/g;

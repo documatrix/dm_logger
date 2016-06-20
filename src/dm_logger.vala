@@ -457,25 +457,23 @@ namespace DMLogger
 
   /**
    * This method can be used to translate a log message using the message database to a language.
+   * @param component The component.
    * @param caption_name The name of the caption.
    * @param fallback If no message database is loaded then this fallback message is used.
    * @param ... A list of strings which will be used to replace the ${...} patterns.
    * @return The translated message.
    */
-  public string t( string caption_name, string fallback, ... )
+  public string t( string component, string caption_name, string fallback, ... )
   {
     string message = fallback;
 
     /* Check if a message database is loaded and then get the message from the mdb... */
-    if ( DMLogger.log != null && DMLogger.log.mdb != null )
+    if ( DMLogger.log != null && DMLogger.log.caption_mdb != null && DMLogger.log.caption_mdb.lookup( component ) != null )
     {
-      foreach( string? s in DMLogger.log.caption_mdb.get_keys( ) )
+      unowned string? mdb_message = DMLogger.log.caption_mdb.lookup( component ).lookup( caption_name );
+      if ( mdb_message != null )
       {
-        unowned string? mdb_message = s;
-        if ( mdb_message != null )
-        {
-          message = (!)mdb_message;
-        }
+        message = (!)mdb_message;
       }
     }
 
