@@ -302,11 +302,14 @@ sub parse_valafile
         elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.t\s*\(\s*("[^"]+"|[^\s]+)\s*,\s*("[^"]*"|[^\s]+)\s*(,|\))/i )
         {
           my $package = $1;
-          my $caption = "cap_" . $2;
+          my $caption = $2;
           my $message = $3;
           my $nach_string = $4;
           my $danach = $';
           my $davor = $`;
+
+          $caption =~ /^"(.*)"$/;
+          $caption = "\"cap_$1\"";
 
           if ( $davor !~ /\s*\/\/\s*$/ )
           {
