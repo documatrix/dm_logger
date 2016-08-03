@@ -87,7 +87,7 @@ if (-e $mdb)
     {
       #print "$tokens[ 0 ]: $tokens[ 2 ] = $tokens[ 1 ]\n";
     }
-    if ( $message_id < $tokens[ 1 ] )
+    if ( $tokens[ 1 ] =~ /^\d+$/ && $message_id < $tokens[ 1 ] )
     {
       $message_id = $tokens[ 1 ];
     }
@@ -302,7 +302,7 @@ sub parse_valafile
         elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.t\s*\(\s*("[^"]+"|[^\s]+)\s*,\s*("[^"]*"|[^\s]+)\s*(,|\))/i )
         {
           my $package = $1;
-          my $caption = $2;
+          my $caption = "cap_" . $2;
           my $message = $3;
           my $nach_string = $4;
           my $danach = $';
