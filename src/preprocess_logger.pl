@@ -338,6 +338,10 @@ sub parse_valafile
         $line = $rest;
       }
     }
+    else
+    {
+      print FOUT $line;
+    }
   }
   if ( $dynamic_file )
   {
