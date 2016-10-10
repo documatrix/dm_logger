@@ -221,7 +221,13 @@ namespace DMLogger
       parameters = { filename, git_version };
     }
 
-    public string parse_message( string? _message, string[] params )
+    /**
+     * Parses the given message and inserts the given parameters into it.
+     * @param _message The message to be parsed.
+     * @param params The parameters to be inserted into the message.
+     * @return The parsed message containing the given parameters.
+     */
+    public string parse_message( string _message, string[] params )
     {
       StringBuilder new_message = new StringBuilder( );
 
@@ -332,7 +338,7 @@ namespace DMLogger
             else
             {
               stdout.printf( "\tMessage: %s\n", message );
-              stdout.printf( "\tMessage Parsed: %s\n", this.parse_message( message, parameters ) );
+              stdout.printf( "\tMessage Parsed: %s\n", this.parse_message( (!)message, parameters ) );
             }
           }
           else if ( mdb == null )
@@ -400,7 +406,7 @@ namespace DMLogger
           }
           else
           {
-            stdout.printf( "%s", this.parse_message( message, parameters ) );
+            stdout.printf( "%s", this.parse_message( (!)message, parameters ) );
           }
           if ( this.type == LOG_ENTRY_ERROR || this.type == LOG_ENTRY_WARNING || this.type == LOG_ENTRY_FATAL )
           {
