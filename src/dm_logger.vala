@@ -221,9 +221,12 @@ namespace DMLogger
       parameters = { filename, git_version };
     }
 
-    public string parse_message( string? message, string[] params )
+    public string parse_message( string? _message, string[] params )
     {
       StringBuilder new_message = new StringBuilder( );
+
+      /* Unescape \n, \", etc. characters */
+      string message = _message.compress( );
 
       for ( int i = 0; i < message.char_count(); i++ )
       {
@@ -476,6 +479,9 @@ namespace DMLogger
         message = (!)mdb_message;
       }
     }
+
+    /* Unescape \n, \", etc. characters */
+    message = message.compress( );
 
     /* Replace the ${...} patterns using the given list of arguments. */
     va_list l = va_list( );
