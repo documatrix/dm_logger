@@ -158,12 +158,31 @@ unless( open( MDB, ">$mdb" ) )
   exit( 1 );
 }
 binmode MDB;
-foreach my $comp ( keys %messages )
+foreach my $comp ( sort( keys %messages ) )
 {
-  foreach my $msg ( keys %{ $messages{ $comp } } )
+  my %message_hash_id = ( );
+  my %message_hash_string = ( );
+
+  foreach my $msg ( sort( keys %{ $messages{ $comp } } ) )
   {
     my $id = $messages{ $comp }->{ $msg };
-    print MDB "$comp\x01$id\x01$msg\n";
+    if ( $id =~ /^[0-9]+$/ )
+    {
+      $message_hash_id{ $id } = "$comp\x01$id\x01$msg\n";
+    }
+    else
+    {
+      $message_hash_string{ $id } = "$comp\x01$id\x01$msg\n";
+    }
+  }
+
+  foreach my $key ( sort{ $a <=> $b } keys %message_hash_id )
+  {
+    print MDB $message_hash_id{ $key };
+  }
+  foreach my $key ( sort( keys %message_hash_string ) )
+  {
+    print MDB $message_hash_string{ $key };
   }
 }
 
@@ -272,6 +291,8 @@ sub parse_valafile
               $message =~ /^\s*"([^"]*)"\s*$/;
               $message = $1;
             }
+
+            $message =~ s/\x01/\\"/g;
             if ( defined $messages{ $component }->{ $message } )
             {
               #print "message already defined\n";
@@ -324,6 +345,7 @@ sub parse_valafile
               $message = $1;
             }
 
+            $message =~ s/\x01/\\"/g;
             warn "message: $message - caption: $caption";
             if ( !defined $messages{ $component }->{ $message } && $caption =~ /^"(.*)"$/ )
             {
