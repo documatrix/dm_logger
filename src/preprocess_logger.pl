@@ -320,6 +320,20 @@ sub parse_valafile
             $rest = $danach;
           }
         }
+        elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.log\.(hint)\s*\(\s*/i )
+        {
+          my $package = $1;
+          my $func = $2;
+          my $davor = $`;
+          my $danach = $';
+
+          if ( $davor !~ /\s*\/\/\s*$/ )
+          {
+            $line = "";
+            $line .= $davor . "$package.log.$func( \"$component\", \"$vfile\", $line_number, \"$git_version\", ";
+            $rest = $danach;
+          }
+        }
         elsif ( $line =~ /(DocPipe|this|DMLogger|DocuMatrix|Core)\.t\s*\(\s*("[^"]+"|[^\s]+)\s*,\s*("[^"]*"|[^\s]+)\s*(,|\))/i )
         {
           my $package = $1;

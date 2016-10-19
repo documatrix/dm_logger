@@ -7,6 +7,7 @@ namespace DMLogger
   public static const uint16 LOG_ENTRY_RECORD_TYPE_FILEINFO = 1;
   public static const uint16 LOG_ENTRY_RECORD_TYPE_MESSAGE = 2;
   public static const uint16 LOG_ENTRY_RECORD_TYPE_EOF = 4;
+  public static const uint16 LOG_ENTRY_RECORD_TYPE_HINT = 5;
 
   public static const uint16 LOG_ENTRY_NONE = 0;
   public static const uint16 LOG_ENTRY_DEBUG = 1;
@@ -222,6 +223,19 @@ namespace DMLogger
     }
 
     /**
+     * Creates a new hint LogEntry.
+     * @param component The component who created the LogEntry.
+     * @param file_id This flag specifies the file_id.
+     * @param line The line in which the hint occured.
+     */
+    public LogEntry.hint( string component, int64 file_id, uint16 line )
+    {
+      this( 0, component, file_id, LOG_ENTRY_NONE, line, 0, true );
+      this.record_type = LOG_ENTRY_RECORD_TYPE_HINT;
+      parameters = { };
+    }
+
+    /**
      * Parses the given message and inserts the given parameters into it.
      * @param _message The message to be parsed.
      * @param params The parameters to be inserted into the message.
@@ -324,6 +338,12 @@ namespace DMLogger
           stdout.printf( "=== FILEDEF ===\n" );
           stdout.printf( "\tFilename: %s\n", this.parameters[ 0 ] );
           stdout.printf( "\tGit-Version: %s\n", this.parameters[ 1 ] );
+        }
+        else if ( this.record_type == LOG_ENTRY_RECORD_TYPE_HINT )
+        {
+          stdout.printf( "=== HINT ===\n" );
+          stdout.printf( "\tFilename: %s\n", this.parameters[ 0 ] );
+          stdout.printf( "\tLine: %s\n", this.parameters[ 1 ] );
         }
         else
         {
@@ -814,6 +834,20 @@ namespace DMLogger
     }
 
     /**
+     * A new hint LogEntry will be created.
+     * @param component The current component.
+     * @param filename The file in which the hint occured.
+     * @param line_number The line in which the hint occured.
+     * @param git_version The git Version.
+     * @param ... A list of strings which represent this hint.
+     */
+    public void hint( string component, string filename, uint16 line_number, string git_version, ... )
+    {
+      va_list l = va_list( );
+      this.__generate_message__( filename, line_number, git_version, LOG_ENTRY_NONE, 0, true, 0, component, true, l, LOG_ENTRY_RECORD_TYPE_HINT );
+    }
+
+    /**
      * Creates a new LogEntry
      * @param filename The ID of the LogEntry.
      * @param line_number The line in which the error occured.
@@ -825,11 +859,20 @@ namespace DMLogger
      * @param component The current component.
      * @param force_log If this is true the log get logged no matter what the log-count is.
      * @param va_list args A list of strings params.
+     * @param record_type The record type of the LogEntry.
      */
-    private void __generate_message__( string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, bool force_log, va_list args )
+    private void __generate_message__( string filename, uint16 line_number, string git_version, uint16 type, uint16 trace_level, bool concat, int64 message_id, string component, bool force_log, va_list args, uint16 record_type = LOG_ENTRY_RECORD_TYPE_MESSAGE )
     {
       int64 file_id = this.__handle_file__( filename, component, git_version, line_number, trace_level );
-      LogEntry e = new LogEntry( message_id, component, file_id, type, line_number, trace_level, concat );
+      LogEntry e;
+      if ( record_type == LOG_ENTRY_RECORD_TYPE_HINT )
+      {
+        e = new LogEntry.hint( component, file_id, line_number );
+      }
+      else
+      {
+        e = new LogEntry( message_id, component, file_id, type, line_number, trace_level, concat );
+      }
       string[] tmp = {};
       string? v;
       while ( true )
