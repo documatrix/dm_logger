@@ -8,6 +8,8 @@ namespace DMLogger
   public static const uint16 LOG_ENTRY_RECORD_TYPE_MESSAGE = 2;
   public static const uint16 LOG_ENTRY_RECORD_TYPE_EOF = 4;
   public static const uint16 LOG_ENTRY_RECORD_TYPE_HINT = 5;
+  public static const uint16 LOG_ENTRY_RECORD_TYPE_FLUSH = 6;
+  public static const uint16 LOG_ENTRY_RECORD_TYPE_TID_ENTRY_BIN = 7;
 
   public static const uint16 LOG_ENTRY_NONE = 0;
   public static const uint16 LOG_ENTRY_DEBUG = 1;
@@ -172,6 +174,12 @@ namespace DMLogger
     public uint16 line;
 
     /**
+     * Will be filled with the log entries from the @see Logger.tid_entry_bin,
+     * if @see LogEntry.record_type is @see DMLogger.LOG_ENTRY_RECORD_TYPE_FLUSH.
+     */
+    public LogEntries log_entries;
+
+    /**
      * The LogEntry construktor
      * @param message_id The ID of the LogEntry.
      * @param component The component who created the LogEntry.
@@ -233,6 +241,30 @@ namespace DMLogger
       this( 0, component, file_id, LOG_ENTRY_NONE, line, 0, true );
       this.record_type = LOG_ENTRY_RECORD_TYPE_HINT;
       parameters = { };
+    }
+
+    /**
+     * Creates a new LogEntry with the record type @see DMLogger.LOG_ENTRY_RECORD_TYPE_FLUSH.
+     * Is used to get log entries from the @see Logger.tid_entry_bin in a thread-safe way.
+     * @param log_entries The LogEntries object which will be filled with the log entries from the @see Logger.tid_entry_bin.
+     */
+    public LogEntry.flush( LogEntries log_entries )
+    {
+      this( 0, "", 0, LOG_ENTRY_NONE, 0, 0, false );
+      this.record_type = LOG_ENTRY_RECORD_TYPE_FLUSH;
+      this.parameters = { };
+      this.log_entries = log_entries;
+    }
+
+    /**
+     * Creates a new LogEntry with the record type @see DMLogger.LOG_ENTRY_RECORD_TYPE_TID_ENTRY_BIN.
+     * Is used to execute the method @see Logger.create_log_entry_bin_for_thread in a thread-safe way.
+     */
+    public LogEntry.create_tid_entry_bin( )
+    {
+      this( 0, "", 0, LOG_ENTRY_NONE, 0, 0, false );
+      this.record_type = LOG_ENTRY_RECORD_TYPE_TID_ENTRY_BIN;
+      this.parameters = { };
     }
 
     /**
@@ -662,15 +694,24 @@ namespace DMLogger
     /**
      * Adds a new Thread-ID to the tid_entry_bin hash table.
      * @param tid the ID of the Thread
+     * @param thread_safe If the DMLogger was started threaded, this parameter states if the log entry bin creation
+     *                    should be done in a thread-safe way ( via the @see DMLogger.log_queue ) or immediately.
      */
-    public void create_log_entry_bin_for_thread( uint64 tid )
+    public void create_log_entry_bin_for_thread( uint64 tid, bool thread_safe = true )
     {
-      if ( this.tid_entry_bin == null )
+      if ( this.threaded && thread_safe )
       {
-        this.tid_entry_bin = new HashTable<uint64?,DMArray<LogEntry>?>( OpenDMLib.uint64_hash, OpenDMLib.uint64_equal );
+        DMLogger.log_queue.push( new LogEntry.create_tid_entry_bin( ) );
       }
-      OpenDMLib.DMArray<DMLogger.LogEntry> log_messages = new OpenDMLib.DMArray<DMLogger.LogEntry>( );
-      this.tid_entry_bin.insert( tid, log_messages );
+      else
+      {
+        if ( this.tid_entry_bin == null )
+        {
+          this.tid_entry_bin = new HashTable<uint64?,DMArray<LogEntry>?>( OpenDMLib.uint64_hash, OpenDMLib.uint64_equal );
+        }
+        OpenDMLib.DMArray<DMLogger.LogEntry> log_messages = new OpenDMLib.DMArray<DMLogger.LogEntry>( );
+        this.tid_entry_bin.insert( tid, log_messages );
+      }
     }
 
     /*
@@ -687,6 +728,26 @@ namespace DMLogger
         }
         try
         {
+          if ( ( (!)e ).record_type == LOG_ENTRY_RECORD_TYPE_TID_ENTRY_BIN )
+          {
+            this.create_log_entry_bin_for_thread( e.tid, false );
+            continue;
+          }
+
+          if ( ( (!)e ).record_type == LOG_ENTRY_RECORD_TYPE_FLUSH )
+          {
+            if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null )
+            {
+              e.log_entries.push( this.tid_entry_bin.get( e.tid ) );
+              this.tid_entry_bin.set( e.tid, new OpenDMLib.DMArray<DMLogger.LogEntry>( ) );
+            }
+            else
+            {
+              e.log_entries.push( new OpenDMLib.DMArray<DMLogger.LogEntry>( ) );
+            }
+            continue;
+          }
+
           if ( this.log_writer != null )
           {
             e.out_file( (!)this.log_writer );
@@ -917,6 +978,28 @@ namespace DMLogger
         }
       }
       log_counter ++;
+    }
+
+    /**
+     * Returns the log entries for the current thread from @see Logger.tid_entry_bin in a thread-safe way.
+     * The read log messages will be removed from @see Logger.tid_entry_bin.
+     * @return The log entries for the current thread from @see Logger.tid_entry_bin in a thread-safe way.
+     */
+    public DMArray<LogEntry>? get_logs_for_thread( )
+    {
+      if ( this.threaded )
+      {
+        LogEntries log_entries = new LogEntries( );
+
+        return log_entries.pop( );
+      }
+      else
+      {
+        uint64 tid = OpenDMLib.gettid( );
+        DMArray<LogEntry>? log_entries = this.tid_entry_bin.get( tid );
+        this.tid_entry_bin.set( tid, new OpenDMLib.DMArray<DMLogger.LogEntry>( ) );
+        return log_entries;
+      }
     }
 
     /**
@@ -1165,4 +1248,55 @@ namespace DMLogger
       }
     }
   }
+
+  /**
+   * This class is used to read log entries from the @see Logger.tid_entry_bin in a thread-safe way.
+   */
+  public class LogEntries : GLib.Object
+  {
+    /**
+     * This condition is used to wait for the initialization of @see LogEntries.log_entries.
+     */
+    private Cond cond = Cond( );
+
+    /**
+     * This mutex is used to wait for the initialization of @see LogEntries.log_entries.
+     */
+    private Mutex mutex = Mutex( );
+
+    /**
+     * Will be filled with log entries by @see LogEntries.push.
+     */
+    private DMArray<LogEntry>? log_entries = null;
+
+    /**
+     * Returns the log entries for the current thread from @see Logger.tid_entry_bin in a thread-safe way.
+     * The read log messages will be removed from @see Logger.tid_entry_bin.
+     * @return The log entries for the current thread from @see Logger.tid_entry_bin in a thread-safe way.
+     */
+    public DMArray<LogEntry> pop( )
+    {
+      this.mutex.lock( );
+      DMLogger.log_queue.push( new LogEntry.flush( this ) );
+      while ( this.log_entries == null )
+      {
+        this.cond.wait( this.mutex );
+      }
+      this.mutex.unlock( );
+      return (!)this.log_entries;
+    }
+
+    /**
+     * Adds new log entries and signals the waiting @see LogEntries.pop method that new log entries are available.
+     * @param log_entries A DMArray with new log entries.
+     */
+    public void push( DMArray<LogEntry> log_entries )
+    {
+      this.mutex.lock( );
+      this.log_entries = log_entries;
+      this.cond.signal( );
+      this.mutex.unlock( );
+    }
+  }
+
 }
