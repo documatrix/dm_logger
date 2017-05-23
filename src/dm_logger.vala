@@ -1257,12 +1257,20 @@ namespace DMLogger
     /**
      * This condition is used to wait for the initialization of @see LogEntries.log_entries.
      */
+#if GLIB_2_32
     private Cond cond = Cond( );
+#else
+    private Cond cond = new Cond( );
+#endif
 
     /**
      * This mutex is used to wait for the initialization of @see LogEntries.log_entries.
      */
+#if GLIB_2_32
     private Mutex mutex = Mutex( );
+#else
+    private Mutex mutex = new Mutex( );
+#endif
 
     /**
      * Will be filled with log entries by @see LogEntries.push.
