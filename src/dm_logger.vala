@@ -335,51 +335,52 @@ namespace DMLogger
 
     /**
      * This method can be used to read an mdb file which uses caption names instead of message ids.
+     * @param out_stream A FileStream which should be used when printing out the message
      * @param files A hashtable with file ids as keys and file names as values
      * @param _mdb A hashtable with the components as keys and another hashtable ( with message ids as keys and texts as values ) as value.
      * @param print_verbose Sets if the output should be verbose.
      * @param debug_mode Sets if the filename and line number should be printed
      */
-    public void print_out( HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose, bool debug_mode )
+    public void print_out( FileStream out_stream, HashTable<int64?,string?>files, HashTable<string,HashTable<int64?,string>?>? _mdb, bool print_verbose, bool debug_mode )
     {
       unowned HashTable<int64?,string>? mdb = _mdb.lookup( this.component );
 
       char ESC = 27;
       if ( print_verbose == true )
       {
-        stdout.printf( "\nLog-Entry\n" );
-        stdout.printf( "\tProcess-ID: %d\n", this.pid );
-        stdout.printf( "\tThread-ID: %lld\n", this.tid );
-        stdout.printf( "\tTimestamp: %lld\n", this.tstamp );
-        stdout.printf( "\tRecord-Type: %d\n", this.record_type );
-        stdout.printf( "\tFile-ID: %g\n", this.file_id );
-        stdout.printf( "\tLine: %d\n", this.line );
-        stdout.printf( "\tType: %d\n", this.type );
-        stdout.printf( "\tComponent: %s\n", this.component );
+        out_stream.printf( "\nLog-Entry\n" );
+        out_stream.printf( "\tProcess-ID: %d\n", this.pid );
+        out_stream.printf( "\tThread-ID: %lld\n", this.tid );
+        out_stream.printf( "\tTimestamp: %lld\n", this.tstamp );
+        out_stream.printf( "\tRecord-Type: %d\n", this.record_type );
+        out_stream.printf( "\tFile-ID: %g\n", this.file_id );
+        out_stream.printf( "\tLine: %d\n", this.line );
+        out_stream.printf( "\tType: %d\n", this.type );
+        out_stream.printf( "\tComponent: %s\n", this.component );
         if ( this.concat == true )
         {
-          stdout.printf( "\tConcat: true\n" );
+          out_stream.printf( "\tConcat: true\n" );
         }
         else
         {
-          stdout.printf( "\tConcat: false\n" );
+          out_stream.printf( "\tConcat: false\n" );
         }
-        stdout.printf( "\tTrace-Level: %d\n", this.trace_level );
+        out_stream.printf( "\tTrace-Level: %d\n", this.trace_level );
         if ( this.record_type == LOG_ENTRY_RECORD_TYPE_FILEINFO )
         {
-          stdout.printf( "=== FILEDEF ===\n" );
-          stdout.printf( "\tFilename: %s\n", this.parameters[ 0 ] );
-          stdout.printf( "\tGit-Version: %s\n", this.parameters[ 1 ] );
+          out_stream.printf( "=== FILEDEF ===\n" );
+          out_stream.printf( "\tFilename: %s\n", this.parameters[ 0 ] );
+          out_stream.printf( "\tGit-Version: %s\n", this.parameters[ 1 ] );
         }
         else if ( this.record_type == LOG_ENTRY_RECORD_TYPE_HINT )
         {
-          stdout.printf( "=== HINT ===\n" );
-          stdout.printf( "\tFilename: %s\n", this.parameters[ 0 ] );
-          stdout.printf( "\tLine: %s\n", this.parameters[ 1 ] );
+          out_stream.printf( "=== HINT ===\n" );
+          out_stream.printf( "\tFilename: %s\n", this.parameters[ 0 ] );
+          out_stream.printf( "\tLine: %s\n", this.parameters[ 1 ] );
         }
         else
         {
-          stdout.printf( "\tMessage-ID: %g\n", this.message_id );
+          out_stream.printf( "\tMessage-ID: %g\n", this.message_id );
           if ( mdb != null && mdb.lookup( this.message_id ) != null )
           {
             string? message = mdb.lookup( this.message_id );
@@ -389,22 +390,22 @@ namespace DMLogger
             }
             else
             {
-              stdout.printf( "\tMessage: %s\n", message );
-              stdout.printf( "\tMessage Parsed: %s\n", this.parse_message( (!)message, parameters ) );
+              out_stream.printf( "\tMessage: %s\n", message );
+              out_stream.printf( "\tMessage Parsed: %s\n", this.parse_message( (!)message, parameters ) );
             }
           }
           else if ( mdb == null )
           {
-            stdout.printf( "\tMessage: %g\n", this.message_id );
+            stderr.printf( "\tMessage: %g\n", this.message_id );
           }
           else if ( this.message_id != 0 )
           {
-            stdout.printf( "=== THIS MESSAGE WAS NOT DEFINED IN THE MESSAGE DATABASE! ===\n" );
+            stderr.printf( "=== THIS MESSAGE WAS NOT DEFINED IN THE MESSAGE DATABASE! ===\n" );
           }
-          stdout.printf( "\tParameters:\n" );
+          out_stream.printf( "\tParameters:\n" );
           foreach ( string p in this.parameters )
           {
-            stdout.printf( "\t\t%s\n", p );
+            out_stream.printf( "\t\t%s\n", p );
           }
         }
       }
@@ -414,27 +415,27 @@ namespace DMLogger
         {
           if ( this.type == LOG_ENTRY_ERROR )
           {
-            stdout.printf( "%c[1;31mERROR ", ESC );
+            out_stream.printf( "%c[1;31mERROR ", ESC );
           }
           else if ( this.type == LOG_ENTRY_WARNING )
           {
-            stdout.printf( "%c[1mWARNING ", ESC );
+            out_stream.printf( "%c[1mWARNING ", ESC );
           }
           else if ( this.type == LOG_ENTRY_FATAL )
           {
-            stdout.printf( "%c[1;31mFATAL ", ESC );
+            out_stream.printf( "%c[1;31mFATAL ", ESC );
           }
           if ( this.type == LOG_ENTRY_DEBUG )
           {
-            stdout.printf( "DEBUG " );
+            out_stream.printf( "DEBUG " );
           }
           else if ( this.type == LOG_ENTRY_INFO )
           {
-            stdout.printf( "INFO " );
+            out_stream.printf( "INFO " );
           }
 
           DMDateTime dt = new DMDateTime.from_unix_local( (int64)( this.tstamp / (int64)1000000 ) );
-          stdout.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
+          out_stream.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
 
           if ( debug_mode == true )
           {
@@ -458,13 +459,13 @@ namespace DMLogger
           }
           else
           {
-            stdout.printf( "%s", this.parse_message( (!)message, parameters ) );
+            out_stream.printf( "%s", this.parse_message( (!)message, parameters ) );
           }
           if ( this.type == LOG_ENTRY_ERROR || this.type == LOG_ENTRY_WARNING || this.type == LOG_ENTRY_FATAL )
           {
-            stdout.printf( "%c[0m",ESC );
+            out_stream.printf( "%c[0m",ESC );
           }
-          stdout.printf( "\n" );
+          out_stream.printf( "\n" );
         }
         else if ( this.record_type == LOG_ENTRY_RECORD_TYPE_FILEINFO )
         {
@@ -656,6 +657,11 @@ namespace DMLogger
     public string? mdb_file;
 
     /**
+     * This variable tells the logger which file stream should be used when printing out log messages.
+     */
+    public unowned FileStream out_stream = stdout;
+
+    /**
      * This hashtable will be filled by the read_mdb method and
      * contains the component and another hastable filled with
      * the messages (with message ids names as keys).
@@ -714,6 +720,15 @@ namespace DMLogger
       }
     }
 
+    /**
+     * This method can be used to set the FileStream which should be used when printing out messages.
+     * @param out_stream The new FileStream which should be used.
+     */
+    public void set_out_stream( FileStream out_stream )
+    {
+      this.out_stream = out_stream;
+    }
+
     /*
      * Führt Logging Aktivitäten aus
      */
@@ -762,7 +777,7 @@ namespace DMLogger
           }
           if ( log_to_console )
           {
-            e.print_out( this.files, this.mdb, false, this.debug_mode );
+            e.print_out( this.out_stream, this.files, this.mdb, false, this.debug_mode );
           }
           if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null )
           {
@@ -961,7 +976,7 @@ namespace DMLogger
           }
           if ( log_to_console && this.should_make_log( force_log ) )
           {
-            e.print_out( this.files, this.mdb, false, this.debug_mode );
+            e.print_out( this.out_stream, this.files, this.mdb, false, this.debug_mode );
           }
           if ( this.tid_entry_bin != null && this.tid_entry_bin.get( e.tid ) != null && this.should_make_log( force_log ) )
           {
@@ -1061,7 +1076,7 @@ namespace DMLogger
             }
             if ( log_to_console )
             {
-              fi.print_out( this.files, this.mdb, false, this.debug_mode );
+              fi.print_out( this.out_stream, this.files, this.mdb, false, this.debug_mode );
             }
           }
           catch ( Error e )

@@ -91,7 +91,7 @@ public int main( string[] args )
       message( "EOF reached" );
       break;
     }
-    le.print_out( files, mdb, print_verbose, debug_mode );
+    le.print_out( stdout, files, mdb, print_verbose, debug_mode );
 
   }
   debug( "Terminating %s, Version %s", product_name, product_version );
