@@ -760,6 +760,10 @@ namespace DMLogger
             {
               e.log_entries.push( new OpenDMLib.DMArray<DMLogger.LogEntry>( ) );
             }
+            if ( this.log_writer != null )
+            {
+              ( (!)this.log_writer ).write_out_buffer( );
+            }
             continue;
           }
 
@@ -1013,6 +1017,10 @@ namespace DMLogger
         uint64 tid = OpenDMLib.gettid( );
         DMArray<LogEntry>? log_entries = this.tid_entry_bin.get( tid );
         this.tid_entry_bin.set( tid, new OpenDMLib.DMArray<DMLogger.LogEntry>( ) );
+        if ( this.log_writer != null )
+        {
+          ( (!)this.log_writer ).write_out_buffer( );
+        }
         return log_entries;
       }
     }
