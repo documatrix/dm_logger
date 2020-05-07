@@ -41,6 +41,9 @@ windows: build copy_files
 windows64: build copy_files
 	cd build && cmake . -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-mingw64.cmake ${CMAKE_OPTS} && make
 
+webassembly: build copy_files
+	cd build && emcmake cmake . ${CMAKE_OPTS} && make
+
 install: build
 	cd build && make install && ldconfig
 
