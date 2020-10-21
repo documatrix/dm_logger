@@ -96,9 +96,9 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
     TARGETS
       ${DM_LOGGER_NAME}
     LIBRARY DESTINATION
-    lib/
+      lib/
     ARCHIVE DESTINATION
-    lib/
+      lib/
   )
 else()
   # Install shared object
