@@ -38,16 +38,16 @@ OPTIONS
 )
 
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
-vala_precompile(DM_LOGREADER_VALA_C
-  ${DM_LOGREADER_SOURCES}
-PACKAGES
-  ${VALA_PACKAGES}
-CUSTOM_VAPIS
-  ${CUSTOM_VAPIS_LIST} dm_logger-1.0.vapi
-OPTIONS
-  --thread -g --vapidir=${CMAKE_INSTALL_PREFIX}/share/vala/vapi
-  ${CMAKE_VALA_OPTS} ${VAPIDIRS_ARGS}
-)
+  vala_precompile(DM_LOGREADER_VALA_C
+    ${DM_LOGREADER_SOURCES}
+  PACKAGES
+    ${VALA_PACKAGES}
+  CUSTOM_VAPIS
+    ${CUSTOM_VAPIS_LIST} dm_logger-1.0.vapi
+  OPTIONS
+    --thread -g --vapidir=${CMAKE_INSTALL_PREFIX}/share/vala/vapi
+    ${CMAKE_VALA_OPTS} ${VAPIDIRS_ARGS}
+  )
 endif()
 
 add_library(
@@ -113,12 +113,12 @@ endif( )
 
 # Install dm_logreader and preprocess_logger.pl
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
-install(
-TARGETS
-  dm_logreader
-RUNTIME DESTINATION
-  bin
-)
+  install(
+    TARGETS
+      dm_logreader
+    RUNTIME DESTINATION
+      bin
+  )
 endif()
 install(
 PROGRAMS
