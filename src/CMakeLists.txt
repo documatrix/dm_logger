@@ -55,11 +55,11 @@ add_library(
   ${DM_LOGGER_VALA_C}
 )
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
-add_executable(
-  dm_logreader
-  ${DM_LOGREADER_VALA_C}
-)
-target_link_libraries( dm_logreader dm_logger-1.0 )
+  add_executable(
+    dm_logreader
+    ${DM_LOGREADER_VALA_C}
+  )
+  target_link_libraries( dm_logreader dm_logger-1.0 )
 endif()
 
 # CREATE PKGCONFIG FILES
