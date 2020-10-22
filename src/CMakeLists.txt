@@ -37,26 +37,30 @@ OPTIONS
   ${CMAKE_VALA_OPTS} ${VAPIDIRS_ARGS}
 )
 
-vala_precompile(DM_LOGREADER_VALA_C
-  ${DM_LOGREADER_SOURCES}
-PACKAGES
-  ${VALA_PACKAGES}
-CUSTOM_VAPIS
-  ${CUSTOM_VAPIS_LIST} dm_logger-1.0.vapi
-OPTIONS
-  --thread -g --vapidir=${CMAKE_INSTALL_PREFIX}/share/vala/vapi
-  ${CMAKE_VALA_OPTS} ${VAPIDIRS_ARGS}
-)
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
+  vala_precompile(DM_LOGREADER_VALA_C
+    ${DM_LOGREADER_SOURCES}
+  PACKAGES
+    ${VALA_PACKAGES}
+  CUSTOM_VAPIS
+    ${CUSTOM_VAPIS_LIST} dm_logger-1.0.vapi
+  OPTIONS
+    --thread -g --vapidir=${CMAKE_INSTALL_PREFIX}/share/vala/vapi
+    ${CMAKE_VALA_OPTS} ${VAPIDIRS_ARGS}
+  )
+endif()
 
 add_library(
   ${DM_LOGGER_NAME} SHARED
   ${DM_LOGGER_VALA_C}
 )
-add_executable(
-  dm_logreader
-  ${DM_LOGREADER_VALA_C}
-)
-target_link_libraries( dm_logreader dm_logger-1.0 )
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
+  add_executable(
+    dm_logreader
+    ${DM_LOGREADER_VALA_C}
+  )
+  target_link_libraries( dm_logreader dm_logger-1.0 )
+endif()
 
 # CREATE PKGCONFIG FILES
 if(NOT DEFINED CMAKE_INSTALL_BINDIR)
@@ -86,6 +90,16 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     DESTINATION
       bin/ 
     )
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
+  # Install shared object
+  install(
+    TARGETS
+      ${DM_LOGGER_NAME}
+    LIBRARY DESTINATION
+      lib/
+    ARCHIVE DESTINATION
+      lib/
+  )
 else()
   # Install shared object
   install(
@@ -98,12 +112,14 @@ endif( )
 
 
 # Install dm_logreader and preprocess_logger.pl
-install(
-TARGETS
-  dm_logreader
-RUNTIME DESTINATION
-  bin
-)
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
+  install(
+    TARGETS
+      dm_logreader
+    RUNTIME DESTINATION
+      bin
+  )
+endif()
 install(
 PROGRAMS
   preprocess_logger.pl

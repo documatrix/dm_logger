@@ -60,7 +60,6 @@ namespace DMLogger
     }
 
     HashTable<string,HashTable<int64?,string>?>? mdb = new HashTable<string,HashTable<int64?,string>?>( str_hash, str_equal );
-    HashTable<int64?,string>? mdb_mini;
 
     while ( true )
     {
@@ -80,16 +79,14 @@ namespace DMLogger
         stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
       }
 
-      if ( mdb.lookup( tokens[ 0 ] ) != null )
+      unowned HashTable<int64?,string>? mdb_mini = mdb.lookup( tokens[ 0 ] );
+      if ( mdb_mini == null )
       {
-        mdb[ tokens[ 0 ] ].insert( int64.parse(tokens[ 1 ] ), tokens[ 2 ] );
+        HashTable<int64?,string> owned_mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
+        mdb.insert( tokens[ 0 ], owned_mdb_mini );
+        mdb_mini = owned_mdb_mini;
       }
-      else
-      {
-        mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
-        mdb_mini.insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
-        mdb.insert( tokens[ 0 ], mdb_mini );
-      }
+      mdb_mini.insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
     }
 
     return mdb;
@@ -119,7 +116,6 @@ namespace DMLogger
       return null;
     }
 
-    HashTable<string?,string>? mdb_mini = null;
     HashTable<string,HashTable<string?,string>?>? mdb = new HashTable<string,HashTable<string?,string>?>( str_hash, str_equal );
 
     while ( true )
@@ -140,16 +136,14 @@ namespace DMLogger
         stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
       }
 
-      if ( mdb.lookup( tokens[ 0 ] ) != null )
+      unowned HashTable<string?,string>? mdb_mini = mdb.lookup( tokens[ 0 ] );
+      if ( mdb_mini == null )
       {
-        mdb[ tokens[ 0 ] ].insert( tokens[ 1 ], tokens[ 2 ] );
+        HashTable<string?,string> owned_mdb_mini = new HashTable<string?,string>( str_hash, str_equal );
+        mdb.insert( tokens[ 0 ], owned_mdb_mini );
+        mdb_mini = owned_mdb_mini;
       }
-      else
-      {
-        mdb_mini = new HashTable<string?,string>( str_hash, str_equal );
-        mdb_mini.insert( tokens[ 1 ], tokens[ 2 ] );
-        mdb.insert( tokens[ 0 ], mdb_mini );
-      }
+      mdb_mini.insert( tokens[ 1 ], tokens[ 2 ] );
     }
     return mdb;
   }

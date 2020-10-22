@@ -30,6 +30,10 @@ find_package(PkgConfig)
 set (MODULES_TO_CHECK glib-2.0 dmtestlib-1.0 gobject-2.0 gio-2.0 gthread-2.0 zlib open_dmlib-1.0)
 pkg_check_modules(DEPS REQUIRED ${MODULES_TO_CHECK})
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL Emscripten)
+  set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+endif( )
+
 set( LIBS )
 foreach( PKGLIB ${DEPS_LIBRARIES} )
   find_library( _LIB_${PKGLIB} ${PKGLIB} PATHS ${DEPS_LIBRARY_DIRS})
