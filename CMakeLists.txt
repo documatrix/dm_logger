@@ -1,9 +1,21 @@
 ### CMakeLists automatically created with AutoVala
 ### Do not edit
 
+if(CMAKE_VERSION VERSION_LESS "3.3.0")
+	cmake_minimum_required (VERSION 2.6)
+	cmake_policy (VERSION 2.8)
+elseif(CMAKE_VERSION VERSION_LESS "3.5.0")
+	cmake_minimum_required (VERSION 3.3)
+	cmake_policy (VERSION 3.3)
+elseif(CMAKE_VERSION VERSION_LESS "3.10.0")
+	cmake_minimum_required (VERSION 3.5)
+	cmake_policy (VERSION 3.5)
+else()
+	cmake_minimum_required (VERSION 3.10)
+	cmake_policy (VERSION 3.10)
+endif()
+
 project (dm_logger)
-cmake_minimum_required (VERSION 2.6)
-cmake_policy (VERSION 2.8)
 list (APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 option(ICON_UPDATE "Update the icon cache after installing" ON)
 option(BUILD_VALADOC "Build API documentation if Valadoc is available" OFF)
