@@ -10,6 +10,7 @@ namespace DMLogger
   public static const uint16 LOG_ENTRY_RECORD_TYPE_HINT = 5;
   public static const uint16 LOG_ENTRY_RECORD_TYPE_FLUSH = 6;
   public static const uint16 LOG_ENTRY_RECORD_TYPE_TID_ENTRY_BIN = 7;
+  public static const uint16 LOG_ENTRY_RECORD_TYPE_REMOVE_TID_ENTRY_BIN = 8;
 
   public static const uint16 LOG_ENTRY_NONE = 0;
   public static const uint16 LOG_ENTRY_DEBUG = 1;
@@ -258,6 +259,17 @@ namespace DMLogger
     {
       this( 0, "", 0, LOG_ENTRY_NONE, 0, 0, false );
       this.record_type = LOG_ENTRY_RECORD_TYPE_TID_ENTRY_BIN;
+      this.parameters = { };
+    }
+
+    /**
+     * Creates a new LogEntry with the record type @see DMLogger.LOG_ENTRY_RECORD_TYPE_REMOVE_TID_ENTRY_BIN.
+     * Is used to execute the method @see Logger.remove_log_entry_bin_for_thread in a thread-safe way.
+     */
+    public LogEntry.remove_tid_entry_bin( )
+    {
+      this( 0, "", 0, LOG_ENTRY_NONE, 0, 0, false );
+      this.record_type = LOG_ENTRY_RECORD_TYPE_REMOVE_TID_ENTRY_BIN;
       this.parameters = { };
     }
 
@@ -715,6 +727,25 @@ namespace DMLogger
     }
 
     /**
+     * Removes the Thread-ID of the tid_entry_bin hash table.
+     *
+     * @param tid the ID of the Thread
+     * @param thread_safe If the DMLogger was started threaded, this parameter states if the log entry bin creation
+     *                    should be done in a thread-safe way ( via the @see DMLogger.log_queue ) or immediately.
+     */
+    public void remove_log_entry_bin_for_thread( uint64 tid, bool thread_safe = true )
+    {
+      if ( this.threaded && thread_safe )
+      {
+        DMLogger.log_queue.push( new LogEntry.remove_tid_entry_bin( ) );
+      }
+      else
+      {
+        DMLogger.log.tid_entry_bin.remove( OpenDMLib.gettid( ) );
+      }
+    }
+
+    /**
      * This method can be used to set the FileStream which should be used when printing out messages.
      * @param out_stream The new FileStream which should be used.
      */
@@ -740,6 +771,12 @@ namespace DMLogger
           if ( ( (!)e ).record_type == LOG_ENTRY_RECORD_TYPE_TID_ENTRY_BIN )
           {
             this.create_log_entry_bin_for_thread( e.tid, false );
+            continue;
+          }
+
+          if ( ( (!)e ).record_type == LOG_ENTRY_RECORD_TYPE_REMOVE_TID_ENTRY_BIN )
+          {
+            this.remove_log_entry_bin_for_thread( e.tid, false );
             continue;
           }
 
