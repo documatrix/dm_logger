@@ -2,6 +2,14 @@ set (DATADIR "${CMAKE_INSTALL_PREFIX}/share")
 set (PKGDATADIR "${DATADIR}/dm_logger")
 set (GETTEXT_PACKAGE "dm_logger")
 set (CMAKE_C_FLAGS "-g -O3")
+
+# Required so MinGW's <time.h> exposes the inline localtime_r/gmtime_r
+# shims (they forward to MSVC's localtime_s under the hood).  On glibc
+# this macro is a no-op -- localtime_r is always declared there.
+# Verified against x86_64-w64-mingw32-gcc 9.2.0; older MinGW-w64
+# versions (pre-v4.0, ~2015) will fail loudly with
+# "undefined reference to localtime_r" on the first cross-build.
+add_definitions(-D_POSIX_THREAD_SAFE_FUNCTIONS=1)
 set (PREFIX ${CMAKE_INSTALL_PREFIX})
 set (DOLLAR "$")
 
