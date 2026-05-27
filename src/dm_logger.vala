@@ -513,8 +513,9 @@ namespace DMLogger
             out_stream.printf( "INFO " );
           }
 
-          DMDateTime dt = new DMDateTime.from_unix_local( (int64)( this.tstamp / (int64)1000000 ) );
-          out_stream.printf( "[%s.%06lld] ", dt.format( "%F %H:%M:%S" ), (int64)( this.tstamp % (int64)1000000 ) );
+          char ts_buf[20];
+          format_log_timestamp( this.tstamp, ts_buf );
+          out_stream.printf( "[%s.%06lld] ", (string)ts_buf, (int64)( this.tstamp % (int64)1000000 ) );
 
           if ( debug_mode == true )
           {
