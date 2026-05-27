@@ -123,9 +123,13 @@ namespace DMLogger
       else
       {
         /* localtime_r failed (only happens for absurd time_t values
-         * on 32-bit builds). Emit a placeholder so the logger never
-         * blocks the writer thread on this. */
+         * on 32-bit builds). Emit a placeholder but do not cache it
+         * so the next call retries. */
         GLib.Memory.copy( _dm_logger_ts_cached_prefix, "????-??-?? ??:??:??\0".data, 20 );
+        _dm_logger_ts_cached_seconds = seconds;
+        /* _dm_logger_ts_cached_valid intentionally left false */
+        GLib.Memory.copy( buf, _dm_logger_ts_cached_prefix, 20 );
+        return;
       }
       _dm_logger_ts_cached_seconds = seconds;
       _dm_logger_ts_cached_valid = true;
