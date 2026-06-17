@@ -30,7 +30,7 @@ if ( $c_compiler =~ /^(.*mingw.*)gcc$/ )
 {
   $pkg_config = "$1${pkg_config}";
 }
-my $magick_version = `${pkg_config} --modversion ImageMagick`;
+my $magick_version = `${pkg_config} --modversion ImageMagick-7.Q16`;
 $magick_version =~ s/^\s+|\s+$//g;
 
 my @merge_mdbs = @ARGV;
