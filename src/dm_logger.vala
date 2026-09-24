@@ -35,6 +35,76 @@ namespace DMLogger
   public int log_trace_level = 0;
 
   /**
+   * Reads an mdb file in one pass and fills both the message id and the caption tables.
+   * @param mdb_file The filename which should be read.
+   * @param mdb Will be set to a hashtable with the components as keys and another hashtable ( with message ids as keys and texts as values ) as value.
+   * @param caption_mdb Will be set to a hashtable with the components as keys and another hashtable ( with captions as keys and texts as values ) as value.
+   * @param print_verbose This flag specifies if the reading process should generate some log messages...
+   * @return true if the mdb was read successfully.
+   */
+  public static bool read_mdb_tables( string? mdb_file, out HashTable<string,HashTable<int64?,string>?>? mdb, out HashTable<string,HashTable<string?,string>?>? caption_mdb, bool print_verbose = false )
+  {
+    mdb = null;
+    caption_mdb = null;
+    if ( mdb_file == null )
+    {
+      stderr.printf( "No MDB-File specified!\n" );
+      return false;
+    }
+
+    string contents;
+    try
+    {
+      FileUtils.get_contents( (!)mdb_file, out contents );
+    }
+    catch ( FileError e )
+    {
+      stderr.printf( "Error while opening mdb-File %s! %s\n", (!)mdb_file, e.message );
+      return false;
+    }
+
+    mdb = new HashTable<string,HashTable<int64?,string>?>( str_hash, str_equal );
+    caption_mdb = new HashTable<string,HashTable<string?,string>?>( str_hash, str_equal );
+
+    foreach ( unowned string line in contents.split( "\n" ) )
+    {
+      string[] tokens = line.split( "\x01" );
+      if ( tokens.length < 2 )
+      {
+        continue;
+      }
+      if ( print_verbose == true )
+      {
+        stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
+      }
+
+      unowned HashTable<int64?,string>? mdb_mini = mdb.lookup( tokens[ 0 ] );
+      if ( mdb_mini == null )
+      {
+        HashTable<int64?,string> t = new HashTable<int64?,string>( int64_hash, int64_equal );
+        mdb_mini = t;
+        mdb.insert( tokens[ 0 ], (owned) t );
+      }
+      ( (!)mdb_mini ).insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
+
+      unowned HashTable<string?,string>? caption_mini = caption_mdb.lookup( tokens[ 0 ] );
+      if ( caption_mini == null )
+      {
+        HashTable<string?,string> t = new HashTable<string?,string>( str_hash, str_equal );
+        caption_mini = t;
+        caption_mdb.insert( tokens[ 0 ], (owned) t );
+      }
+      ( (!)caption_mini ).insert( tokens[ 1 ], tokens[ 2 ] );
+    }
+
+    if ( print_verbose )
+    {
+      stdout.printf( "EOF of mdb reached\n" );
+    }
+    return true;
+  }
+
+  /**
    * This method can be used to read an mdb file which uses the components and message ids.
    * @param mdb_file The filename which should be read.
    * @param print_verbose This flag specifies if the reading process should generate some log messages...
@@ -42,53 +112,9 @@ namespace DMLogger
    */
   public static HashTable<string,HashTable<int64?,string>?>? read_mdb( string? mdb_file, bool print_verbose = false )
   {
-    if ( mdb_file == null )
-    {
-      stderr.printf( "No MDB-File specified!\n" );
-      return null;
-    }
-
-    DMFileStream min;
-    try
-    {
-      min = OpenDMLib.IO.open( (!)mdb_file, "rb" );
-    }
-    catch ( OpenDMLib.IO.OpenDMLibIOErrors e )
-    {
-      stderr.printf( "Error while opening mdb-File %s! %s\n", (!)mdb_file, e.message );
-      return null;
-    }
-
-    HashTable<string,HashTable<int64?,string>?>? mdb = new HashTable<string,HashTable<int64?,string>?>( str_hash, str_equal );
-
-    while ( true )
-    {
-      string? line = min.read_line( );
-      if ( line == null )
-      {
-        if ( print_verbose )
-        {
-          stdout.printf( "EOF of mdb reached\n" );
-        }
-        break;
-      }
-
-      string[] tokens = ( (!)line ).split( "\x01" );
-      if ( print_verbose == true )
-      {
-        stdout.printf( "Adding %s %lld = %s to mdb...\n", tokens[ 0 ], int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
-      }
-
-      unowned HashTable<int64?,string>? mdb_mini = mdb.lookup( tokens[ 0 ] );
-      if ( mdb_mini == null )
-      {
-        HashTable<int64?,string> owned_mdb_mini = new HashTable<int64?,string>( int64_hash, int64_equal );
-        mdb.insert( tokens[ 0 ], owned_mdb_mini );
-        mdb_mini = owned_mdb_mini;
-      }
-      mdb_mini.insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
-    }
-
+    HashTable<string,HashTable<int64?,string>?>? mdb;
+    HashTable<string,HashTable<string?,string>?>? caption_mdb;
+    read_mdb_tables( mdb_file, out mdb, out caption_mdb, print_verbose );
     return mdb;
   }
 
@@ -100,52 +126,10 @@ namespace DMLogger
    */
   public static HashTable<string,HashTable<string?,string>?>? read_caption_mdb( string? mdb_file, bool print_verbose = false )
   {
-    if ( mdb_file == null )
-    {
-      stderr.printf( "No MDB-File specified!\n" );
-      return null;
-    }
-    DMFileStream min;
-    try
-    {
-      min = OpenDMLib.IO.open( (!)mdb_file, "rb" );
-    }
-    catch ( OpenDMLib.IO.OpenDMLibIOErrors e )
-    {
-      stderr.printf( "Error while opening mdb-File %s! %s\n", (!)mdb_file, e.message );
-      return null;
-    }
-
-    HashTable<string,HashTable<string?,string>?>? mdb = new HashTable<string,HashTable<string?,string>?>( str_hash, str_equal );
-
-    while ( true )
-    {
-      string? line = min.read_line( );
-      if ( line == null )
-      {
-        if ( print_verbose )
-        {
-          stdout.printf( "EOF of mdb reached\n" );
-        }
-        break;
-      }
-
-      string[] tokens = ( (!)line ).split( "\x01" );
-      if ( print_verbose == true )
-      {
-        stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
-      }
-
-      unowned HashTable<string?,string>? mdb_mini = mdb.lookup( tokens[ 0 ] );
-      if ( mdb_mini == null )
-      {
-        HashTable<string?,string> owned_mdb_mini = new HashTable<string?,string>( str_hash, str_equal );
-        mdb.insert( tokens[ 0 ], owned_mdb_mini );
-        mdb_mini = owned_mdb_mini;
-      }
-      mdb_mini.insert( tokens[ 1 ], tokens[ 2 ] );
-    }
-    return mdb;
+    HashTable<string,HashTable<int64?,string>?>? mdb;
+    HashTable<string,HashTable<string?,string>?>? caption_mdb;
+    read_mdb_tables( mdb_file, out mdb, out caption_mdb, print_verbose );
+    return caption_mdb;
   }
 
   public class LogEntry : GLib.Object
@@ -269,62 +253,64 @@ namespace DMLogger
      */
     public string parse_message( string _message, string[] params )
     {
-      StringBuilder new_message = new StringBuilder( );
-
       /* Unescape \n, \", etc. characters */
       string message = _message.compress( );
+      unowned uint8[] b = (uint8[]) message;
+      int n = message.length;
+      StringBuilder new_message = new StringBuilder.sized( n + 64 );
+      int start = 0;
 
-      for ( int i = 0; i < message.char_count(); i++ )
+      for ( int i = 0; i < n; i++ )
       {
-        if ( message.get_char( message.index_of_nth_char( i ) ) == '$' && ( i + 3 <= message.char_count( ) - 1) )
+        /* A pattern needs at least three more characters after the '$' */
+        if ( b[ i ] != '$' || i + 1 >= n || b[ i + 1 ] != '{' || !has_chars_after( message, i, 3 ) )
         {
-          if ( message.get_char( message.index_of_nth_char( i + 1 ) ) == '{' )
-          {
-            int j = 1;
-            bool done = false;
-            StringBuilder cont = new StringBuilder( );
-            while ( true )
-            {
-              j ++;
-              if ( i + j == message.char_count( ) )
-              {
-                break;
-              }
-              else if ( message.get_char( message.index_of_nth_char( i + j) ) == '}' )
-              {
-                done = true;
-                i = i + j;
-                break;
-              }
-              else
-              {
-                cont.append_unichar( message.get_char( message.index_of_nth_char( i + j ) ) );
-              }
-            }
-            if ( done == true )
-            {
-              if ( int.parse( cont.str ) - 1 >= parameters.length )
-              {
-                stderr.printf( "Parameter %d referenced, but there are only %d parameters!\n", int.parse( cont.str ), parameters.length );
-                stderr.printf( "Message: %s\n", message );
-              }
-              else
-              {
-                new_message.append( parameters[ int.parse( cont.str ) - 1 ] );
-              }
-            }
-          }
-          else
-          {
-            new_message.append_unichar( message.get_char( message.index_of_nth_char( i ) ) );
-          }
+          continue;
+        }
+
+        int j = i + 2;
+        while ( j < n && b[ j ] != '}' )
+        {
+          j++;
+        }
+
+        new_message.append_len( (string) ( (char*) message + start ), i - start );
+        if ( j >= n )
+        {
+          /* No closing brace: drop the '$' and keep the rest */
+          start = i + 1;
+          continue;
+        }
+
+        int nr = int.parse( message.substring( i + 2, j - i - 2 ) );
+        if ( nr - 1 >= parameters.length || nr < 1 )
+        {
+          stderr.printf( "Parameter %d referenced, but there are only %d parameters!\n", nr, parameters.length );
+          stderr.printf( "Message: %s\n", message );
         }
         else
         {
-          new_message.append_unichar( message.get_char( message.index_of_nth_char( i ) ) );
+          new_message.append( parameters[ nr - 1 ] );
+        }
+        i = j;
+        start = j + 1;
+      }
+      new_message.append_len( (string) ( (char*) message + start ), n - start );
+      return (owned) new_message.str;
+    }
+
+    private static bool has_chars_after( string s, int pos, int count )
+    {
+      int index = pos + 1;
+      unichar c;
+      for ( int k = 0; k < count; k++ )
+      {
+        if ( !s.get_next_char( ref index, out c ) )
+        {
+          return false;
         }
       }
-      return new_message.str;
+      return true;
     }
 
     /**
@@ -1156,9 +1142,9 @@ namespace DMLogger
         if ( this.mdb == null )
         {
           this.mdb_file = mdb_file;
-          this.mdb = DMLogger.read_mdb( mdb_file, false );
+          DMLogger.read_mdb_tables( mdb_file, out this.mdb, out this.caption_mdb, false );
         }
-        if ( this.caption_mdb == null )
+        else if ( this.caption_mdb == null )
         {
           this.caption_mdb = DMLogger.read_caption_mdb( mdb_file, false );
         }
