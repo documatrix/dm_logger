@@ -151,6 +151,14 @@ namespace DMLogger
    */
   public static bool read_mdb_tables( string? mdb_file, out HashTable<string,HashTable<int64?,string>?>? mdb, out HashTable<string,HashTable<string?,string>?>? caption_mdb, bool print_verbose = false )
   {
+    return parse_mdb_file( mdb_file, true, true, out mdb, out caption_mdb, print_verbose );
+  }
+
+  /**
+   * Reads an mdb file once and only populates the requested tables.
+   */
+  private static bool parse_mdb_file( string? mdb_file, bool want_ids, bool want_captions, out HashTable<string,HashTable<int64?,string>?>? mdb, out HashTable<string,HashTable<string?,string>?>? caption_mdb, bool print_verbose )
+  {
     mdb = null;
     caption_mdb = null;
     if ( mdb_file == null )
@@ -170,13 +178,19 @@ namespace DMLogger
       return false;
     }
 
-    mdb = new HashTable<string,HashTable<int64?,string>?>( str_hash, str_equal );
-    caption_mdb = new HashTable<string,HashTable<string?,string>?>( str_hash, str_equal );
+    if ( want_ids )
+    {
+      mdb = new HashTable<string,HashTable<int64?,string>?>( str_hash, str_equal );
+    }
+    if ( want_captions )
+    {
+      caption_mdb = new HashTable<string,HashTable<string?,string>?>( str_hash, str_equal );
+    }
 
     foreach ( unowned string line in contents.split( "\n" ) )
     {
       string[] tokens = line.split( "\x01" );
-      if ( tokens.length < 2 )
+      if ( tokens.length < 3 )
       {
         continue;
       }
@@ -185,23 +199,29 @@ namespace DMLogger
         stdout.printf( "Adding %s %s = %s to mdb...\n", tokens[ 0 ], tokens[ 1 ], tokens[ 2 ] );
       }
 
-      unowned HashTable<int64?,string>? mdb_mini = mdb.lookup( tokens[ 0 ] );
-      if ( mdb_mini == null )
+      if ( mdb != null )
       {
-        HashTable<int64?,string> t = new HashTable<int64?,string>( int64_hash, int64_equal );
-        mdb_mini = t;
-        mdb.insert( tokens[ 0 ], (owned) t );
+        unowned HashTable<int64?,string>? mdb_mini = ( (!)mdb ).lookup( tokens[ 0 ] );
+        if ( mdb_mini == null )
+        {
+          HashTable<int64?,string> t = new HashTable<int64?,string>( int64_hash, int64_equal );
+          mdb_mini = t;
+          ( (!)mdb ).insert( tokens[ 0 ], (owned) t );
+        }
+        ( (!)mdb_mini ).insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
       }
-      ( (!)mdb_mini ).insert( int64.parse( tokens[ 1 ] ), tokens[ 2 ] );
 
-      unowned HashTable<string?,string>? caption_mini = caption_mdb.lookup( tokens[ 0 ] );
-      if ( caption_mini == null )
+      if ( caption_mdb != null )
       {
-        HashTable<string?,string> t = new HashTable<string?,string>( str_hash, str_equal );
-        caption_mini = t;
-        caption_mdb.insert( tokens[ 0 ], (owned) t );
+        unowned HashTable<string?,string>? caption_mini = ( (!)caption_mdb ).lookup( tokens[ 0 ] );
+        if ( caption_mini == null )
+        {
+          HashTable<string?,string> t = new HashTable<string?,string>( str_hash, str_equal );
+          caption_mini = t;
+          ( (!)caption_mdb ).insert( tokens[ 0 ], (owned) t );
+        }
+        ( (!)caption_mini ).insert( tokens[ 1 ], tokens[ 2 ] );
       }
-      ( (!)caption_mini ).insert( tokens[ 1 ], tokens[ 2 ] );
     }
 
     if ( print_verbose )
@@ -221,7 +241,7 @@ namespace DMLogger
   {
     HashTable<string,HashTable<int64?,string>?>? mdb;
     HashTable<string,HashTable<string?,string>?>? caption_mdb;
-    read_mdb_tables( mdb_file, out mdb, out caption_mdb, print_verbose );
+    parse_mdb_file( mdb_file, true, false, out mdb, out caption_mdb, print_verbose );
     return mdb;
   }
 
@@ -235,7 +255,7 @@ namespace DMLogger
   {
     HashTable<string,HashTable<int64?,string>?>? mdb;
     HashTable<string,HashTable<string?,string>?>? caption_mdb;
-    read_mdb_tables( mdb_file, out mdb, out caption_mdb, print_verbose );
+    parse_mdb_file( mdb_file, false, true, out mdb, out caption_mdb, print_verbose );
     return caption_mdb;
   }
 
