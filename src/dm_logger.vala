@@ -39,9 +39,10 @@ namespace DMLogger
    * runtime (9.7 G of 28.8 G instructions), because
    * g_time_zone_new("local") parses /etc/localtime on every call.
    *
-   * We replace it with libc's localtime_r + strftime, and cache the
-   * formatted "YYYY-MM-DD HH:MM:SS" prefix per whole second so that
-   * bursts of log entries in the same second skip strftime entirely.
+   * We replace it with libc's localtime_r + strftime (wrapped in C in
+   * dm_logger_tls.c), and cache the formatted "YYYY-MM-DD HH:MM:SS"
+   * prefix per whole second so that bursts of log entries in the same
+   * second skip strftime entirely.
    *
    * Thread-safety: in threaded mode this helper runs only on the
    * dedicated writer thread (Logger.run). In not-threaded mode it is
@@ -53,31 +54,10 @@ namespace DMLogger
    * MinGW, which are the only compilers we build with).
    */
 
-  [CCode (cname = "localtime_r", cheader_filename = "time.h")]
-  private extern unowned Posix.tm? _dm_logger_localtime_r( ref time_t timep, out Posix.tm result );
-
-  [CCode (cname = "strftime", cheader_filename = "time.h")]
-  private extern size_t _dm_logger_strftime( char* s, size_t max, string format, Posix.tm* tm );
-
-  /* Per-second cache backing format_log_timestamp(), held in
-   * thread-local storage so concurrent callers (not-threaded mode)
-   * never race on it.
-   *
-   * The actual storage lives in dm_logger_tls.c, declared with the
-   * __thread storage-class specifier. We can't declare __thread
-   * variables directly in Vala: a [CCode (cname = "__thread ...")]
-   * trick fails because Vala still emits its own type in front of
-   * the cname ("gint64 __thread int64 foo;" -> C syntax error).
-   * Pulling them in as plain externs via cheader_filename sidesteps
-   * that: Vala just emits references, not declarations. */
-  [CCode (cname = "_dm_logger_ts_cached_seconds", cheader_filename = "dm_logger_tls.h")]
-  private extern int64 _dm_logger_ts_cached_seconds;
-
-  [CCode (cname = "_dm_logger_ts_cached_prefix", cheader_filename = "dm_logger_tls.h", array_length = false)]
-  private extern char _dm_logger_ts_cached_prefix[20];
-
-  [CCode (cname = "_dm_logger_ts_cached_valid", cheader_filename = "dm_logger_tls.h")]
-  private extern bool _dm_logger_ts_cached_valid;
+  /* The per-thread cache and the libc calls live in dm_logger_tls.c;
+   * see dm_logger_tls.h for why this can't be done in Vala. */
+  [CCode (cname = "_dm_logger_format_timestamp_cached", cheader_filename = "dm_logger_tls.h")]
+  private extern void _dm_logger_format_timestamp_cached( int64 tstamp_usec, char* buf );
 
   /**
    * Formats the timestamp portion of a log line into the caller-supplied
@@ -103,39 +83,7 @@ namespace DMLogger
 
   private void _format_log_timestamp( int64 tstamp_usec, char[] buf )
   {
-    int64 seconds = tstamp_usec / (int64)1000000;
-
-    if ( !_dm_logger_ts_cached_valid || seconds != _dm_logger_ts_cached_seconds )
-    {
-      time_t t = (time_t)seconds;
-      Posix.tm tm_local = Posix.tm();
-      if ( _dm_logger_localtime_r( ref t, out tm_local ) != null )
-      {
-        size_t n = _dm_logger_strftime( (char*)_dm_logger_ts_cached_prefix, 20,
-                                        "%Y-%m-%d %H:%M:%S", &tm_local );
-        if ( n == 0 )
-        {
-          /* Cold fallback: strftime ran out of room (impossible with
-           * our 20-byte buffer for this format, but be safe). */
-          GLib.Memory.copy( _dm_logger_ts_cached_prefix, "????-??-?? ??:??:??\0".data, 20 );
-        }
-      }
-      else
-      {
-        /* localtime_r failed (only happens for absurd time_t values
-         * on 32-bit builds). Emit a placeholder but do not cache it
-         * so the next call retries. */
-        GLib.Memory.copy( _dm_logger_ts_cached_prefix, "????-??-?? ??:??:??\0".data, 20 );
-        _dm_logger_ts_cached_seconds = seconds;
-        /* _dm_logger_ts_cached_valid intentionally left false */
-        GLib.Memory.copy( buf, _dm_logger_ts_cached_prefix, 20 );
-        return;
-      }
-      _dm_logger_ts_cached_seconds = seconds;
-      _dm_logger_ts_cached_valid = true;
-    }
-
-    GLib.Memory.copy( buf, _dm_logger_ts_cached_prefix, 20 );
+    _dm_logger_format_timestamp_cached( tstamp_usec, (char*)buf );
   }
 
   /* Ab diesem Trace-Level soll geloggt werden */
