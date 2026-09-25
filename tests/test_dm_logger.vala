@@ -33,6 +33,18 @@ public class TestDMLogger
 
     ts_dm_logger.add_suite( ts_dm_logger_entry_bin );
 
+    /* timestamp formatting */
+    GLib.TestSuite ts_dm_logger_timestamp = new GLib.TestSuite( "timestamp" );
+    ts_dm_logger_timestamp.add(
+      new GLib.TestCase(
+        "test_f_dm_logger_format_log_timestamp",
+        TestDMLogger.default_setup,
+        TestDMLogger.test_dm_logger_format_log_timestamp,
+        TestDMLogger.default_teardown
+      )
+    );
+    ts_dm_logger.add_suite( ts_dm_logger_timestamp );
+
     GLib.Test.run( );
     return 0;
 
@@ -114,6 +126,55 @@ public class TestDMLogger
     logger.stop( );
     GLib.assert( logger.tid_entry_bin.get( OpenDMLib.gettid( ) ).length == 3 );
     GLib.assert( logger.tid_entry_bin.get( thread_id ).length == 1 );
+  }
+
+  /**
+   * Tests that format_log_timestamp produces the expected
+   * "YYYY-MM-DD HH:MM:SS" prefix in the caller-supplied buffer
+   * and that calls with the same whole-second value reuse the
+   * cached prefix (correctness check: result must still be right).
+   *
+   * The check is timezone-independent: we feed a known epoch-second
+   * value, call format_log_timestamp twice with that same second
+   * and once with second+1, and verify all three prefixes are
+   * well-formed and that the first two are byte-equal.
+   */
+  public static void test_dm_logger_format_log_timestamp( )
+  {
+    char buf_a[20];
+    char buf_b[20];
+    char buf_c[20];
+
+    /* 1_700_000_000 seconds == 2023-11-14 22:13:20 UTC.
+     * Local-time representation depends on TZ, but determinism
+     * within one run is all we need. */
+    int64 base_ts = (int64)1700000000 * (int64)1000000;   /* microseconds */
+
+    DMLogger.format_log_timestamp( base_ts,                  buf_a );
+    DMLogger.format_log_timestamp( base_ts + (int64)500000,  buf_b );  /* same second */
+    DMLogger.format_log_timestamp( base_ts + (int64)1500000, buf_c );  /* +1 second */
+
+    string s_a = (string)buf_a;
+    string s_b = (string)buf_b;
+    string s_c = (string)buf_c;
+
+    /* Well-formedness: "YYYY-MM-DD HH:MM:SS" => 19 chars. */
+    GLib.assert( s_a.length == 19 );
+    GLib.assert( s_b.length == 19 );
+    GLib.assert( s_c.length == 19 );
+
+    /* Layout: digits and separators at fixed positions. */
+    GLib.assert( s_a[ 4]  == '-' );
+    GLib.assert( s_a[ 7]  == '-' );
+    GLib.assert( s_a[10]  == ' ' );
+    GLib.assert( s_a[13]  == ':' );
+    GLib.assert( s_a[16]  == ':' );
+
+    /* Same whole-second => identical prefix. */
+    GLib.assert( s_a == s_b );
+
+    /* +1 second => different prefix (last char differs at minimum). */
+    GLib.assert( s_a != s_c );
   }
 }
 
